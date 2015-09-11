@@ -1,0 +1,6 @@
+#!/bin/sh
+set -x
+curl 'http://localhost:8888/math?op=add&x=4&y=5'
+curl 'http://localhost:8888/math?op=sub&x=4&y=5'
+curl 'http://localhost:8888/math?op=mul&x=4&y=5'
+curl 'http://localhost:8888/math?op=div&x=4&y=5'
