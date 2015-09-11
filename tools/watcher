@@ -1,0 +1,150 @@
+#!/usr/local/sqlminus/bin/python
+"""
+instance-watcher -- watch aws instances
+
+    https://github.com/awsh             :  share and enjoy!
+    Mark Harrison, marhar@gmail.com     :
+"""
+
+import os,sys,time
+import sqlite3,atexit
+import boto.ec2
+import awshelpers
+from pprint import pprint
+from awshelpers import P,P0,tprint,tprintx
+
+#-----------------------------------------------------------------------
+def instanceDetail(i0):
+    P('                      id <%s> The unique ID of the Instance.'%i0.id)
+    P('                  groups <%s> A list of Group objects representing the security groups associated with the instance.'%i0.groups)
+    P('         public_dns_name <%s> The public dns name of the instance.'%i0.public_dns_name)
+    P('        private_dns_name <%s> The private dns name of the instance.'%i0.private_dns_name)
+    P('                   state <%s> The string representation of the instances current state.'%i0.state)
+    P('              state_code <%s> An integer representation of the instances current state.'%i0.state_code)
+    P('          previous_state <%s> The string representation of the instances previous state.'%i0.previous_state)
+    P('     previous_state_code <%s> An integer representation of the instances current state.'%i0.previous_state_code)
+    P('                key_name <%s> The name of the SSH key associated with the instance.'%i0.key_name)
+    P('           instance_type <%s> The type of instance (e.g. m1.small).'%i0.instance_type)
+    P('             launch_time <%s> The time the instance was launched.'%i0.launch_time)
+    P('                image_id <%s> The ID of the AMI used to launch this instance.'%i0.image_id)
+    P('               placement <%s> The availability zone in which the instance is running.'%i0.placement)
+    P('         placement_group <%s> The name of the placement group the instance is in (for cluster compute instances).'%i0.placement_group)
+    P('       placement_tenancy <%s> The tenancy of the instance, if the instance is running within a VPC.'%i0.placement_tenancy)
+    P('                  kernel <%s> The kernel associated with the instance.'%i0.kernel)
+    P('                 ramdisk <%s> The ramdisk associated with the instance.'%i0.ramdisk)
+    P('            architecture <%s> The architecture of the image (i386|x86_64).'%i0.architecture)
+    P('              hypervisor <%s> The hypervisor used.'%i0.hypervisor)
+    P('     virtualization_type <%s> The type of virtualization used.'%i0.virtualization_type)
+    P('           product_codes <%s> A list of product codes associated with this instance.'%i0.product_codes)
+    P('        ami_launch_index <%s> This instances position within its launch group.'%i0.ami_launch_index)
+    P('               monitored <%s> A boolean indicating whether monitoring is enabled or not.'%i0.monitored)
+    P('        monitoring_state <%s> A string value that contains the actual value of the monitoring element returned by EC2.'%i0.monitoring_state)
+    P('spot_instance_request_id <%s> The ID of the spot instance request if this is a spot instance.'%i0.spot_instance_request_id)
+    P('               subnet_id <%s> The VPC Subnet ID, if running in VPC.'%i0.subnet_id)
+    P('                  vpc_id <%s> The VPC ID, if running in VPC.'%i0.vpc_id)
+    P('      private_ip_address <%s> The private IP address of the instance.'%i0.private_ip_address)
+    P('              ip_address <%s> The public IP address of the instance.'%i0.ip_address)
+    P('                platform <%s> Platform of the instance (e.g. Windows)'%i0.platform)
+    P('        root_device_name <%s> The name of the root device.'%i0.root_device_name)
+    P('        root_device_type <%s> The root device type (ebs|instance-store).'%i0.root_device_type)
+    P('    block_device_mapping <%s> The Block Device Mapping for the instance.'%i0.block_device_mapping)
+    P('            state_reason <%s> The reason for the most recent state transition.'%i0.state_reason)
+    P('                  groups <%s> List of security Groups associated with the instance.'%i0.groups)
+    P('              interfaces <%s> List of Elastic Network Interfaces associated with this instance.'%i0.interfaces)
+    P('           ebs_optimized <%s> Whether instance is using optimized EBS volumes or not.'%i0.ebs_optimized)
+    P('        instance_profile <%s> A Python dict containing the instance profile id and arn associated with this instance.'%i0.instance_profile)
+
+#-----------------------------------------------------------------------
+def doit_scroll():
+    global conn
+    P('------')
+    P('AWS Instances '+time.ctime())
+
+    reservations=conn.get_all_reservations()
+    for r in reservations:
+        instances=r.instances
+        i0=instances[0]
+        P('            instance-id: '+i0.id)
+        P('          instance-type: '+i0.instance_type)
+        P('      availability-zone: '+i0.placement)
+        P('         instance-state: '+i0.state)
+        ###P('         instance-state: '+i0.monitoring_state)
+        P('          status-checks: '+'___')
+        P('           alarm-status: '+'___')
+        P('                      ?: '+i0.image_id)
+        P('')
+
+#-----------------------------------------------------------------------
+_ho='\033[H'; _ed='\033[J'; _el='\033[K'  # ansi esc sequences
+def doit_ansi():
+    """show status with nice looking update"""
+
+    global conn
+    P0(_ho)
+    P0('AWS (%s) %s %s\n'%('asfd',time.ctime(),_el))
+    reservations=conn.get_all_reservations()
+    # name | id | type | zone | state | status-checks | alarm-status
+
+    dat=[]
+    for r in reservations:
+        instances=r.instances
+        i0=instances[0]
+        if i0.state != 'terminated':
+            x=[i0.ip_address,i0.id,i0.instance_type,i0.placement,i0.state,'___','___']
+            dat.append(x)
+    headers='addr id type zone state status alarm'.split()
+    tprintx(headers,dat)
+    P0(_ed)
+
+def doodle(period):
+    """sleep while drawing the canonical timing doodle"""
+    targ=time.time()+period
+    n=2.0/8.0*2
+    while time.time() < targ:
+        P0('\r|  '+_ed); time.sleep(n)
+        P0('\r/  '+_ed); time.sleep(n)
+        P0('\r-  '+_ed); time.sleep(n)
+        P0('\r\\  '+_ed); time.sleep(n)
+        P0('\r|  '+_ed); time.sleep(n)
+        P0('\r/  '+_ed); time.sleep(n)
+        P0('\r-  '+_ed); time.sleep(n)
+        P0('\r\\  '+_ed); time.sleep(n)
+
+def doit(style='full'):
+    """vector doit call to appropriate display routine"""
+    if style == 'full':
+        doit_ansi()
+
+def main():
+    global conn
+    cfg = awshelpers.readconfig('config')
+    ebcfg = awshelpers.readconfig('ebconfig')
+    region = cfg['default']['region']
+    output = cfg['default']['output']
+    name = ebcfg['default']['name']
+    try:
+        account = cfg['x-account']['name']
+    except KeyError:
+        account='(config: set .aws.config.x-account.name)'
+    conn = boto.ec2.connect_to_region(region)
+
+    dbfile='/tmp/instance-watcher.'+str(os.getpid())
+    print dbfile
+    dbconn=sqlite3.connect(dbfile)
+
+    def cleandb(dbfile=dbfile):
+        os.unlink(dbfile)
+
+    atexit.register(cleandb)
+
+    while True:
+        doit()
+        doodle(5)
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        P('^C')
+        P('')
+        sys.exit(0)

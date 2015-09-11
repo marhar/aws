@@ -1,0 +1,324 @@
+#!/usr/local/sqlminus/bin/python
+"""
+awsh -- aws shell
+
+    https://github.com/awsh             :  share and enjoy!
+    Mark Harrison, marhar@gmail.com     :
+"""
+
+import os,sys,readline,cmd,atexit,ConfigParser,traceback,subprocess
+import boto.ec2
+import awshelpers
+
+#-----------------------------------------------------------------------
+def P(s):
+    """print and flush, with newline"""
+    P0(str(s)+'\n')
+
+#-----------------------------------------------------------------------
+def P0(s):
+    """print and flush, no newline"""
+    sys.stdout.write(str(s))
+    sys.stdout.flush()
+
+#-----------------------------------------------------------------------
+dbgfd=None
+def D0(s):
+    """debug output, no newline"""
+    global dbgfd
+    if dbgfd is None:
+        dbgfd=open('/tmp/awsh.dbg','a')
+        D('================================================== DBGFD')
+    dbgfd.write(str(s))
+    dbgfd.flush()
+
+#-----------------------------------------------------------------------
+def D(s):
+    """debug output with newline."""
+    D0(str(s)+'\n')
+
+#-----------------------------------------------------------------------
+print_is_quiet = False
+def V0(s):
+    """verbose print and flush, no newline. --quiet to supress"""
+    if print_is_quiet is False:
+        sys.stdout.write(str(s))
+        sys.stdout.flush()
+
+#-----------------------------------------------------------------------
+def V(s):
+    """verbose print and flush, with newline. --quiet to supress"""
+    V0(str(s)+'\n')
+
+#-------------------------------------------------------------------
+def tprint(headers,rows):
+    """nicely print a result set"""
+    headerlen=len(headers)
+    maxlen=[len(str(i[0])) for i in headers]
+    for r in rows:
+        if len(r) != headerlen:
+            raise WrongColumns
+        for i in range(len(headers)):
+            ts=str(r[i])
+            tmpl=len(ts)
+            if maxlen[i]<tmpl:
+                maxlen[i]=tmpl
+
+    fmt='%%%ds'%(maxlen[0])
+    for i in maxlen[1:]:
+        fmt+=' %%%ds'%(i)
+
+    fmt='%%%ds'%(maxlen[0])
+    for i in maxlen[1:]:
+        fmt+=' | %%%ds'%(i)
+
+    print fmt%tuple(headers)
+    for r in rows:
+        print fmt%tuple(r)
+
+class AwshCmd(cmd.Cmd):
+    #-------------------------------------------------------------------
+    def __init__(self):
+        """AwshCmd init"""
+        cmd.Cmd.__init__(self)
+
+        config=awshelpers.readconfig('config')
+        self.region = config['default']['region']
+        self.output = config['default']['output']
+
+        ebconfig=awshelpers.readconfig('ebconfig')
+        try:
+            self.name = ebconfig['default']['name']
+        except KeyError:
+            self.name = 'setNameInEBCONFIG'
+        try:
+            self.pemfile = ebconfig['default']['pemfile']
+        except KeyError:
+            self.pemfile = 'setPemFileInEBCONFIG'
+
+        self.conn = boto.ec2.connect_to_region(self.region)
+        self.prompt='%s@%s> '%(self.name,self.region)
+
+    #-------------------------------------------------------------------
+    def emptyline(self):
+        """ignore empty lines"""
+        pass
+
+    #-------------------------------------------------------------------
+    def do_EOF(self,s):
+        """quit"""
+        P('')
+        sys.exit(0);
+
+    #-----------------------------------------------------------------------
+    def do_info(self,s):
+        """print information about this account"""
+        P('region: %s'%(self.region))
+        P('output: %s'%(self.output))
+
+    #-----------------------------------------------------------------------
+    def do_reservations(self,s):
+        """display reservations"""
+        reservations=self.conn.get_all_reservations()
+        for r in reservations:
+            P('  '+str(r))
+            instances=r.instances
+            i0=instances[0]
+            P('    '+i0.id)
+            P('      '+i0.instance_type)
+            P('      '+i0.placement)
+
+    #-----------------------------------------------------------------------
+    def do_status(self,s):
+        """display reservations"""
+        statuses=self.con.get_all_instance_status()
+        print statuses
+        status=self.conn.get_instance_status(instances[0])
+        P(status)
+        P(status.instance_status)
+
+    #-----------------------------------------------------------------------
+    def do_instances(self,s):
+        """print instances that are up"""
+        P('COMING')
+
+    #-----------------------------------------------------------------------
+    def do_launch(self,s):
+        """launch an instance"""
+        x=self.conn.run_instances('ami-d7450be7',
+                                key_name='mhtest',
+                                instance_type='t2.micro',
+                                security_groups=['mhsecurity'])
+        print x
+
+        # make sure we can ssh into it.  this probably can be
+        # wrapped up into its own function and called once per
+        # session.  perhaps make a command so that if we move
+        # laptop between networks we can rejigger
+
+        G='singlessh'
+
+        #------------------------------------------------
+        # create security group G if it does not exist
+        exists=False
+        for g in self.conn.get_all_security_groups():
+            if g.name == G:
+                exists=True
+                break
+
+        if exists == False:
+            P('creating security group: %s'%(G))
+            groups[G]=self.conn.create_security_group(G,'single location ssh')
+        else:
+            P('modifying security group: %s'%(G))
+
+        #------------------------------------------------
+        # delete any ingress rules from G.
+        for r in g.rules:
+            for cidr in r.grants:
+                P('revoking grant: %s'%(cidr))
+                g.revoke(r.ip_protocol,r.from_port,r.to_port,cidr_ip=cidr)
+
+        #------------------------------------------------
+        # and add our IP address as the sole ingress host
+        mycidr=self.myip()+'/32'
+        P('mycidr:%s:'%mycidr)
+        P('authorizing: %s'%(mycidr))
+        g.authorize(ip_protocol='tcp', from_port=22, to_port=22, cidr_ip=mycidr)
+
+    def do_ssh(self,s):
+        """show ssh commands for running nodes"""
+
+        for r in self.conn.get_all_reservations():
+            i0=instances=r.instances[0]
+            if i0.state != 'terminated':
+                addr=str(i0.ip_address)
+                P('ssh -i %s/.aws/%s ec2-user@%s'% \
+                  (os.environ['HOME'],self.pemfile,addr))
+
+    #-----------------------------------------------------------------------
+    def do_stop(self,s):
+        """stop an instance"""
+        P('COMING')
+        ###>>> conn.stop_instances(instance_ids=['instance-id-1','instance-id-2', ...])
+
+    #-----------------------------------------------------------------------
+    def do_terminate(self,s):
+        """terminate an instance"""
+        a=s.split()
+        if len(a) == 0:
+            P('  usage: terminate --all | id-list')
+        elif len(a) == 1 and a[0] == '--all':
+            reservations=self.conn.get_all_reservations()
+            idlist=[]
+            for r in reservations:
+                instances=r.instances
+                i0=instances[0]
+
+                FORCE_TERMINATE=False
+                if FORCE_TERMINATE:
+                    # even if it's already termed, term it again!
+                    idlist.append(i0.id)
+                else:
+                    if i0.state != 'terminated':
+                        idlist.append(i0.id)
+            if len(idlist) == 0:
+                P('  no reservations to terminate')
+            else:
+                rr=self.conn.terminate_instances(instance_ids=idlist)
+                P('  '+str(rr))
+        else:
+            try:
+                rr=self.conn.terminate_instances(instance_ids=a)
+                P('  '+str(rr))
+            except boto.exception.EC2ResponseError,e:
+                P('  '+e.message)
+
+    #-----------------------------------------------------------------------
+    def complete_terminate(self, text, line, begidx, endidx):
+        """completions for do_terminate"""
+        #print 'text=:%s:'%(text)
+        #print 'line=:%s:'%(line)
+        #print 'begidx=:%s:'%(begidx)
+        #print 'endidx=:%s:'%(endidx)
+        return 'hello this is a test'.split()
+
+
+    #-----------------------------------------------------------------------
+    def do_status(self,s):
+        """show all instance statuses"""
+        s=self.conn.get_all_instance_status()
+        print s
+
+    #-----------------------------------------------------------------------
+    def myip(self):
+        """what's my ip?"""
+        ip=subprocess.Popen("curl -s http://checkip.amazonaws.com",
+                            shell=True,
+                            stdout=subprocess.PIPE).stdout.read()
+        return ip.strip()
+
+    #-----------------------------------------------------------------------
+    def do_myip(self,s):
+        """show your ip address as it appears to aws"""
+        P0(self.myip())
+
+
+    #-----------------------------------------------------------------------
+    def do_instances(self,s):
+        """print instances that are up"""
+        P('COMING')
+
+    #-----------------------------------------------------------------------
+    def do_hints(self,s):
+        """print some useful hints"""
+        P('COMING')
+
+    #-----------------------------------------------------------------------
+    def do_web(self,s):
+        """print some useful hints"""
+        P('COMING')
+
+#-----------------------------------------------------------------------
+def main():
+    """The MAIN thing that you have to remember on this journey is,
+       just be nice to everyone and always smile.
+         -- Ed Sheeran
+    """
+    P('--------------------------------------------------')
+    P('| Welcome to awsh                      build<1>  |')
+    P('| docs: https://github.com/awsh                  |')
+    P('| type "help" for help                           |')
+    P('--------------------------------------------------')
+    cc=AwshCmd()
+    historyFile = os.getenv("AWSH_HISTORY",
+                 os.getenv('HOME')+"/.awsh-history")
+
+    if os.path.exists(historyFile):
+        # gnu/libedit readline weirdness on macos. see
+        # https://docs.python.org/2/library/readline.html
+        if readline.__doc__.rfind('libedit') == -1:
+            readline.read_history_file(historyFile)
+
+    def writeHistory(historyFile=historyFile):
+        readline.write_history_file(historyFile)
+    atexit.register(writeHistory)
+
+    while True:
+        try:
+            cc.cmdloop()
+            break
+        except KeyboardInterrupt:
+            P('^C')
+        except Exception,e:
+            P('')
+            P('*'*72)
+            P('Unexpected Error:')
+            traceback.print_exc()
+            P('')
+            P('please file a bug report here:')
+            P('    https://github.com/marhar/awsh/issues/new')
+            P('*'*72)
+
+if __name__=='__main__':
+    main()
