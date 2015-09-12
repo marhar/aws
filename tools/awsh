@@ -99,6 +99,10 @@ class AwshCmd(cmd.Cmd):
         self.conn = boto.ec2.connect_to_region(self.region)
         self.prompt='%s@%s> '%(self.name,self.region)
 
+    #===================================================================
+    # Cmd-related things
+    #===================================================================
+
     #-------------------------------------------------------------------
     def emptyline(self):
         """ignore empty lines"""
@@ -110,11 +114,21 @@ class AwshCmd(cmd.Cmd):
         P('')
         sys.exit(0);
 
+    #===================================================================
+    # helper functions
+    #===================================================================
+
+    #===================================================================
+    # shell commands
+    #===================================================================
+
     #-----------------------------------------------------------------------
-    def do_info(self,s):
+    def do_config(self,s):
         """print information about this account"""
-        P('region: %s'%(self.region))
-        P('output: %s'%(self.output))
+        P('   region: %s'%(self.region))
+        P('   output: %s'%(self.output))
+        P('     name: %s'%(self.name))
+        P('  pemfile: %s'%(self.pemfile))
 
     #-----------------------------------------------------------------------
     def do_reservations(self,s):
@@ -286,9 +300,9 @@ def main():
          -- Ed Sheeran
     """
     P('--------------------------------------------------')
-    P('| Welcome to awsh                      build<1>  |')
-    P('| docs: https://github.com/awsh                  |')
-    P('| type "help" for help                           |')
+    P('| Welcome to awsh, the AWS shell                 |')
+    P('| docs: https://github.com/marhar/aws            |')
+    P('| type "help" for help                  build<2> |')
     P('--------------------------------------------------')
     cc=AwshCmd()
     historyFile = os.getenv("AWSH_HISTORY",

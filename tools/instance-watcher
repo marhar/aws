@@ -2,7 +2,7 @@
 """
 instance-watcher -- watch aws instances
 
-    https://github.com/awsh             :  share and enjoy!
+    https://github.com/marhar/aws       :  share and enjoy!
     Mark Harrison, marhar@gmail.com     :
 """
 
@@ -81,7 +81,8 @@ def doit_ansi():
 
     global conn
     P0(_ho)
-    P0('AWS (%s) %s %s\n'%('asfd',time.ctime(),_el))
+    P0('AWS (%s) %s %s                                  build<2>\n'%\
+                                           ('asfd',time.ctime(),_el))
     reservations=conn.get_all_reservations()
     # name | id | type | zone | state | status-checks | alarm-status
 
