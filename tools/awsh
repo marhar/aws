@@ -7,65 +7,10 @@ awsh -- aws shell
 """
 
 import os,sys,readline,cmd,atexit,ConfigParser,traceback,subprocess
-import fnmatch,pprint
+import fnmatch,pprint,urllib2
 import boto.ec2
 import awshelpers
-from awshelpers import P,P0
-
-#-----------------------------------------------------------------------
-dbgfd=None
-def D0(s):
-    """debug output, no newline"""
-    global dbgfd
-    if dbgfd is None:
-        dbgfd=open('/tmp/awsh.dbg','a')
-        D('================================================== DBGFD')
-    dbgfd.write(str(s))
-    dbgfd.flush()
-
-#-----------------------------------------------------------------------
-def D(s):
-    """debug output with newline."""
-    D0(str(s)+'\n')
-
-#-----------------------------------------------------------------------
-print_is_quiet = False
-def V0(s):
-    """verbose print and flush, no newline. --quiet to supress"""
-    if print_is_quiet is False:
-        sys.stdout.write(str(s))
-        sys.stdout.flush()
-
-#-----------------------------------------------------------------------
-def V(s):
-    """verbose print and flush, with newline. --quiet to supress"""
-    V0(str(s)+'\n')
-
-#-------------------------------------------------------------------
-def tprint(headers,rows):
-    """nicely print a result set"""
-    headerlen=len(headers)
-    maxlen=[len(str(i[0])) for i in headers]
-    for r in rows:
-        if len(r) != headerlen:
-            raise WrongColumns
-        for i in range(len(headers)):
-            ts=str(r[i])
-            tmpl=len(ts)
-            if maxlen[i]<tmpl:
-                maxlen[i]=tmpl
-
-    fmt='%%%ds'%(maxlen[0])
-    for i in maxlen[1:]:
-        fmt+=' %%%ds'%(i)
-
-    fmt='%%%ds'%(maxlen[0])
-    for i in maxlen[1:]:
-        fmt+=' | %%%ds'%(i)
-
-    print fmt%tuple(headers)
-    for r in rows:
-        print fmt%tuple(r)
+from awshelpers import P,P0,D,D0
 
 class AwshCmd(cmd.Cmd):
     """--------------------------------------------------\n"""\
@@ -112,18 +57,6 @@ class AwshCmd(cmd.Cmd):
         sys.exit(0);
 
     #===================================================================
-    # helper functions
-    #===================================================================
-
-    #-----------------------------------------------------------------------
-    def _myip(self):
-        """what's my ip?"""
-        ip=subprocess.Popen("curl -s http://checkip.amazonaws.com",
-                            shell=True,
-                            stdout=subprocess.PIPE).stdout.read()
-        return ip.strip()
-
-    #===================================================================
     # shell commands
     #===================================================================
 
@@ -151,8 +84,10 @@ class AwshCmd(cmd.Cmd):
 
     #-----------------------------------------------------------------------
     def do_myip(self,s):
-        """show your ip address as it appears to aws"""
-        P(self._myip())
+        """what's my ip address according to amazon?"""
+        fd=urllib2.urlopen("http://checkip.amazonaws.com")
+        ip=fd.read()
+        print(ip.strip())
 
     #-----------------------------------------------------------------------
     def do_instances(self,s):
@@ -373,6 +308,16 @@ class AwshCmd(cmd.Cmd):
     #-----------------------------------------------------------------------
     def do_region(self,s):
         """set the region"""
+        P('COMING')
+
+    #-----------------------------------------------------------------------
+    def do_account(self,s):
+        """set an account"""
+        P('COMING')
+
+    #-----------------------------------------------------------------------
+    def do_account(self,s):
+        """show accounts"""
         P('COMING')
 
     # revisit these >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
