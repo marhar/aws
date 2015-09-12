@@ -7,19 +7,10 @@ awsh -- aws shell
 """
 
 import os,sys,readline,cmd,atexit,ConfigParser,traceback,subprocess
+import fnmatch,pprint
 import boto.ec2
 import awshelpers
-
-#-----------------------------------------------------------------------
-def P(s):
-    """print and flush, with newline"""
-    P0(str(s)+'\n')
-
-#-----------------------------------------------------------------------
-def P0(s):
-    """print and flush, no newline"""
-    sys.stdout.write(str(s))
-    sys.stdout.flush()
+from awshelpers import P,P0
 
 #-----------------------------------------------------------------------
 dbgfd=None
@@ -77,6 +68,16 @@ def tprint(headers,rows):
         print fmt%tuple(r)
 
 class AwshCmd(cmd.Cmd):
+    """--------------------------------------------------\n"""\
+    """| Welcome to awsh, the AWS shell                 |\n"""\
+    """| docs: https://github.com/marhar/aws            |\n"""\
+    """| type "help" for help                  build<3> |\n"""\
+    """--------------------------------------------------\n"""
+
+    #===================================================================
+    # Cmd-related things
+    #===================================================================
+
     #-------------------------------------------------------------------
     def __init__(self):
         """AwshCmd init"""
@@ -99,10 +100,6 @@ class AwshCmd(cmd.Cmd):
         self.conn = boto.ec2.connect_to_region(self.region)
         self.prompt='%s@%s> '%(self.name,self.region)
 
-    #===================================================================
-    # Cmd-related things
-    #===================================================================
-
     #-------------------------------------------------------------------
     def emptyline(self):
         """ignore empty lines"""
@@ -117,6 +114,14 @@ class AwshCmd(cmd.Cmd):
     #===================================================================
     # helper functions
     #===================================================================
+
+    #-----------------------------------------------------------------------
+    def _myip(self):
+        """what's my ip?"""
+        ip=subprocess.Popen("curl -s http://checkip.amazonaws.com",
+                            shell=True,
+                            stdout=subprocess.PIPE).stdout.read()
+        return ip.strip()
 
     #===================================================================
     # shell commands
@@ -133,6 +138,8 @@ class AwshCmd(cmd.Cmd):
     #-----------------------------------------------------------------------
     def do_reservations(self,s):
         """display reservations"""
+        # TODO: figure out any more useful info to display?
+        # BUG: nuke i0, should be for instance in instances???
         reservations=self.conn.get_all_reservations()
         for r in reservations:
             P('  '+str(r))
@@ -143,18 +150,153 @@ class AwshCmd(cmd.Cmd):
             P('      '+i0.placement)
 
     #-----------------------------------------------------------------------
-    def do_status(self,s):
-        """display reservations"""
-        statuses=self.con.get_all_instance_status()
-        print statuses
-        status=self.conn.get_instance_status(instances[0])
-        P(status)
-        P(status.instance_status)
+    def do_myip(self,s):
+        """show your ip address as it appears to aws"""
+        P(self._myip())
 
     #-----------------------------------------------------------------------
     def do_instances(self,s):
-        """print instances that are up"""
-        P('COMING')
+        """print information about instances"""
+        # BUG: nuke i0, should be for instance in instances???
+
+        dat=[]
+        headers='id addr type zone state status alarm'.split()
+        for r in self.conn.get_all_reservations():
+            instances=r.instances
+            i0=instances[0]
+            if i0.state != 'terminated':
+                row=[i0.id,i0.ip_address,i0.instance_type,i0.placement,
+                     i0.state,'___','___']
+                dat.append(row)
+        awshelpers.tprintx(headers,dat)
+
+    def do_volumes(self,s):
+        """print information about volumes"""
+        # TODO: what else is useful? tags? snapshots? dir(v)
+
+        dat=[]
+        headers='id type zone iops size status'.split()
+        for v in self.conn.get_all_volumes():
+            row=[v.id,v.type,v.zone,v.iops, v.size, v.status]
+            dat.append(row)
+        awshelpers.tprintx(headers,dat)
+
+    #-----------------------------------------------------------------------
+    def do_ssh(self,s):
+        """show ssh commands for running nodes"""
+        # BUG: nuke i0, should be for instance in instances???
+
+        for r in self.conn.get_all_reservations():
+            i0=instances=r.instances[0]
+            if i0.state in ['running','pending']:
+                addr=str(i0.ip_address)
+                P('ssh -i %s/.aws/%s ec2-user@%s'% \
+                  (os.environ['HOME'],self.pemfile,addr))
+
+    #-----------------------------------------------------------------------
+    def do_div0(self,s):
+        """devel: test case for runtime error reporting"""
+        x=1/0
+        #TODO: add build number, auto report bug
+
+    #-----------------------------------------------------------------------
+    def _instancelist(self):
+        """return a list of instances and statuses"""
+
+        rv=[]
+        for resv in self.conn.get_all_reservations():
+            for inst in resv.instances:
+                rv.append([inst.id,inst.state])
+        return rv
+
+    #-----------------------------------------------------------------------
+    def complete_start(self, text, line, begidx, endidx):
+        """start completions: instances which are not running"""
+        #TODO: need to handle multiple completions per line
+        #BUG: needs some fiddling
+
+        #print 'text<%s,%s,%s,%s>'%(text,line,begidx,endidx)
+        x=self._instancelist()
+
+        hlen=len('start ')  # TODO: should be able to skip using begidx?
+        partial=line[hlen:].strip()
+
+        if len(partial) == 0:
+            rv=[i[0] for i in x if i[1] not in 'running']
+        else:
+            plen=len(partial)
+            rv=[i[0][plen-1:] for i in x if i[0].startswith(partial)
+                                    and i[1] not in 'running']
+        return rv
+
+    #-----------------------------------------------------------------------
+    def do_start(self,s):
+        """start one or more instances"""
+
+        a=s.split()
+        if len(a) == 0:
+            P('    usage: start instancelist...')
+            return
+
+        started_states=['pending','running','terminated']
+        # b is list of instances match that match wc
+        b=[]
+        for wc in a:
+            if wc.find('*')==-1 and wc.find('?')==-1:
+                b.append(wc)
+            else:
+                for c in [i[0] for i in self._instancelist() \
+                                 if i[1] not in started_states]:
+                    if fnmatch.fnmatch(c,wc):
+                        b.append(c)
+
+        if len(b) == 0:
+            P('    error: no unstarted instance matches: %s'%s)
+            return
+
+        try:
+            rv=self.conn.start_instances(instance_ids=b)
+            P(rv)
+        except boto.exception.EC2ResponseError,e:
+            P('    error: %s'%(e.message))
+
+
+    #-----------------------------------------------------------------------
+    def do_stop(self,s):
+        """stop one or more instances"""
+        #TODO: complete_stop
+
+        a=s.split()
+        if len(a) == 0:
+            P('    usage: stop instancelist...')
+            return
+
+        stopped_states=['stopping','stopped','terminated']
+        # b is list of instances match that match wc
+        b=[]
+        for wc in a:
+            if wc.find('*')==-1 and wc.find('?')==-1:
+                b.append(wc)
+            else:
+                for c in [i[0] for i in self._instancelist() \
+                                 if i[1] not in stopped_states]:
+                    if fnmatch.fnmatch(c,wc):
+                        b.append(c)
+
+        if len(b) == 0:
+            P('    error: no unstopped instance matches: %s'%s)
+            return
+
+        try:
+            rv=self.conn.stop_instances(instance_ids=b)
+            P(rv)
+        except boto.exception.EC2ResponseError,e:
+            P('    error: %s'%(e.message))
+
+
+    # IP >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+    # rough edits below >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     #-----------------------------------------------------------------------
     def do_launch(self,s):
@@ -200,25 +342,49 @@ class AwshCmd(cmd.Cmd):
         P('authorizing: %s'%(mycidr))
         g.authorize(ip_protocol='tcp', from_port=22, to_port=22, cidr_ip=mycidr)
 
-    def do_ssh(self,s):
-        """show ssh commands for running nodes"""
 
-        for r in self.conn.get_all_reservations():
-            i0=instances=r.instances[0]
-            if i0.state != 'terminated':
-                addr=str(i0.ip_address)
-                P('ssh -i %s/.aws/%s ec2-user@%s'% \
-                  (os.environ['HOME'],self.pemfile,addr))
+    # brignt ideas >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     #-----------------------------------------------------------------------
-    def do_stop(self,s):
-        """stop an instance"""
+    def do_hints(self,s):
+        """print some useful hints"""
         P('COMING')
-        ###>>> conn.stop_instances(instance_ids=['instance-id-1','instance-id-2', ...])
 
     #-----------------------------------------------------------------------
-    def do_terminate(self,s):
+    def do_web(self,s):
+        """open a web page with docs? status?"""
+        P('COMING')
+
+    #-----------------------------------------------------------------------
+    def do_watcher(self,s):
+        """run the watcher in another window"""
+        P('COMING')
+
+    #-----------------------------------------------------------------------
+    def do_login(self,s):
+        """modify the box to allow single ip login from this box"""
+        P('COMING')
+
+    #-----------------------------------------------------------------------
+    def do_nologin(self,s):
+        """modify the box to allow single login"""
+        P('COMING')
+
+    #-----------------------------------------------------------------------
+    def do_region(self,s):
+        """set the region"""
+        P('COMING')
+
+    # revisit these >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+    #-----------------------------------------------------------------------
+    def THINK_ABOUT_THIS_do_terminate(self,s):
         """terminate an instance"""
+
+        P("    use stop to stop an instance. don't terminate here for now...")
+        return
+
+        # BUG: nuke i0, should be for instance in instances???
         a=s.split()
         if len(a) == 0:
             P('  usage: terminate --all | id-list')
@@ -248,62 +414,13 @@ class AwshCmd(cmd.Cmd):
             except boto.exception.EC2ResponseError,e:
                 P('  '+e.message)
 
-    #-----------------------------------------------------------------------
-    def complete_terminate(self, text, line, begidx, endidx):
-        """completions for do_terminate"""
-        #print 'text=:%s:'%(text)
-        #print 'line=:%s:'%(line)
-        #print 'begidx=:%s:'%(begidx)
-        #print 'endidx=:%s:'%(endidx)
-        return 'hello this is a test'.split()
-
-
-    #-----------------------------------------------------------------------
-    def do_status(self,s):
-        """show all instance statuses"""
-        s=self.conn.get_all_instance_status()
-        print s
-
-    #-----------------------------------------------------------------------
-    def myip(self):
-        """what's my ip?"""
-        ip=subprocess.Popen("curl -s http://checkip.amazonaws.com",
-                            shell=True,
-                            stdout=subprocess.PIPE).stdout.read()
-        return ip.strip()
-
-    #-----------------------------------------------------------------------
-    def do_myip(self,s):
-        """show your ip address as it appears to aws"""
-        P0(self.myip())
-
-
-    #-----------------------------------------------------------------------
-    def do_instances(self,s):
-        """print instances that are up"""
-        P('COMING')
-
-    #-----------------------------------------------------------------------
-    def do_hints(self,s):
-        """print some useful hints"""
-        P('COMING')
-
-    #-----------------------------------------------------------------------
-    def do_web(self,s):
-        """print some useful hints"""
-        P('COMING')
-
 #-----------------------------------------------------------------------
 def main():
     """The MAIN thing that you have to remember on this journey is,
        just be nice to everyone and always smile.
          -- Ed Sheeran
     """
-    P('--------------------------------------------------')
-    P('| Welcome to awsh, the AWS shell                 |')
-    P('| docs: https://github.com/marhar/aws            |')
-    P('| type "help" for help                  build<2> |')
-    P('--------------------------------------------------')
+    P0(AwshCmd.__doc__)
     cc=AwshCmd()
     historyFile = os.getenv("AWSH_HISTORY",
                  os.getenv('HOME')+"/.awsh-history")
@@ -330,8 +447,9 @@ def main():
             P('Unexpected Error:')
             traceback.print_exc()
             P('')
-            P('please file a bug report here:')
-            P('    https://github.com/marhar/awsh/issues/new')
+            P('please file a bug report')
+            P('and include the above error details:')
+            P('    https://github.com/marhar/aws/issues/new')
             P('*'*72)
 
 if __name__=='__main__':
