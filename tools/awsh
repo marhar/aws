@@ -16,7 +16,7 @@ class AwshCmd(cmd.Cmd):
     """--------------------------------------------------\n"""\
     """| Welcome to awsh, the AWS shell                 |\n"""\
     """| docs: https://github.com/marhar/aws            |\n"""\
-    """| type "help" for help                  build<3> |\n"""\
+    """| type "help" for help                  build<4> |\n"""\
     """--------------------------------------------------\n"""
 
     #===================================================================
@@ -300,53 +300,52 @@ class AwshCmd(cmd.Cmd):
     # brignt ideas >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     #-----------------------------------------------------------------------
-    def do_hints(self,s):
+    def FUTURE_do_hints(self,s):
         """print some useful hints"""
         P('COMING')
 
     #-----------------------------------------------------------------------
-    def do_web(self,s):
+    def FUTURE_do_web(self,s):
         """open a web page with docs? status?"""
         P('COMING')
 
     #-----------------------------------------------------------------------
-    def do_watcher(self,s):
+    def FUTURE_do_watcher(self,s):
         """run the watcher in another window"""
         P('COMING')
 
     #-----------------------------------------------------------------------
-    def do_login(self,s):
+    def FUTURE_do_login(self,s):
         """modify the box to allow single ip login from this box"""
         P('COMING')
 
     #-----------------------------------------------------------------------
-    def do_nologin(self,s):
+    def FUTURE_do_nologin(self,s):
         """modify the box to disallow single login"""
         P('COMING')
 
     #-----------------------------------------------------------------------
-    def do_region(self,s):
+    def FUTURE_do_region(self,s):
         """set the region"""
         P('COMING')
 
     #-----------------------------------------------------------------------
-    def do_profile(self,s):
+    def FUTURE_do_profile(self,s):
         """change the profile"""
         P('COMING')
 
     #-----------------------------------------------------------------------
-    def do_profiles(self,s):
+    def FUTURE_do_profiles(self,s):
         """list profiles"""
         P('COMING')
 
     #-----------------------------------------------------------------------
-    def do_reboot(self,s):
+    def FUTURE_do_reboot(self,s):
         """reboot an instance"""
-        #### does this even work?
         P('COMING')
 
     #-----------------------------------------------------------------------
-    def do_console(self,s):
+    def FUTURE_do_console(self,s):
         """open an AWS web console"""
         P('COMING')
 

@@ -16,11 +16,17 @@ from pprint import pprint
 from awshelpers import P,P0,tprint,tprintx
 
 #-----------------------------------------------------------------------
-_ho='\033[H'; _ed='\033[J'; _el='\033[K'  # ansi esc sequences
+# ansi esc sequences
+#-----------------------------------------------------------------------
+_ho='\033[H'     # cursor home
+_ed='\033[J'     # erase to end of display
+_el='\033[K'     # erase to end of line
+
+#-----------------------------------------------------------------------
 def doit(conn,profile):
     """show status with nice looking update"""
 
-    P0('AWS (%s) %s %s                           build<3>\n'%\
+    P0('ec2 (%s) %s %s                           build<4>\n'%\
                                            (profile,time.ctime(),_el))
     reservations=conn.get_all_reservations()
     # name | id | type | zone | state | status-checks | alarm-status
@@ -31,15 +37,18 @@ def doit(conn,profile):
         instances=r.instances
         i0=instances[0]
         if i0.state != 'terminated':
-            x=[i0.id,i0.ip_address,i0.instance_type,i0.placement,i0.state,'___','___']
+            x=[i0.id,i0.ip_address,i0.instance_type,i0.placement,
+               i0.state,'___','___']
             dat.append(x)
     tprintx(headers,dat)
     P0(_ed)
 
+#-----------------------------------------------------------------------
 def doodle(period):
     """sleep while drawing the canonical timing doodle"""
     targ=time.time()+period
-    n=2.0/8.0*2
+    period=4.0
+    n=period/8.0*2
     while time.time() < targ:
         P0('\r|  '+_ed); time.sleep(n)
         P0('\r/  '+_ed); time.sleep(n)
@@ -50,7 +59,10 @@ def doodle(period):
         P0('\r-  '+_ed); time.sleep(n)
         P0('\r\\  '+_ed); time.sleep(n)
 
+#-----------------------------------------------------------------------
 def main():
+    """the main thing"""
+
     if len(sys.argv) >= 2:
         profile=sys.argv[1]
     else:
@@ -59,7 +71,33 @@ def main():
     cfg = awshelpers.readconfig('config')
     credentials=awshelpers.readconfig('credentials')
 
-    if profile != '--all':
+    #---------------------------------------------------------
+    # for --all, loop through all profiles in credentials file
+    #---------------------------------------------------------
+    if profile == '--all':
+        allprofiles=[]
+        for pp in credentials.keys():
+            #TODO: maybe shouldn't strip out default in --all?
+            if pp != 'default':
+                allprofiles.append(pp)
+
+        while True:
+            P0(_ho)
+            for pp in allprofiles:
+                pp2='profile '+pp
+                conn = boto.ec2.connect_to_region(cfg[pp2]['region'],
+                                aws_access_key_id=
+                                credentials[pp]['aws_access_key_id'],
+                                aws_secret_access_key=
+                                credentials[pp]['aws_secret_access_key'])
+                doit(conn,pp)
+                P(_el)
+            doodle(10)
+
+    #-----------------------------
+    # just watch one profile
+    #-----------------------------
+    else:
         p2=profile
         if profile != 'default':
             p2 = 'profile '+p2
@@ -69,33 +107,16 @@ def main():
         accesskey = credentials[profile]['aws_access_key_id']
         secretkey = credentials[profile]['aws_secret_access_key']
 
-    allprofiles=[]
-    for pp in credentials.keys():
-        if pp != 'default':
-            allprofiles.append(pp)
-            
-    if profile == '--all':
-        while True:
-            P0(_ho)
-            for pp in allprofiles:
-                pp2='profile '+pp
-                conn = boto.ec2.connect_to_region(cfg[pp2]['region'],
-                    aws_access_key_id=
-                                 credentials[pp]['aws_access_key_id'],
-                aws_secret_access_key=
-                                 credentials[pp]['aws_secret_access_key'])
-                doit(conn,pp)
-                P(_el)
-            doodle(3)
-    else:
         conn = boto.ec2.connect_to_region(region,
                   aws_access_key_id=accesskey,
                   aws_secret_access_key=secretkey)
+
         while True:
             P0(_ho)
             doit(conn,profile)
             doodle(3)
 
+#-----------------------------------------------------------------------
 if __name__ == "__main__":
     try:
         main()
