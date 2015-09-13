@@ -43,7 +43,7 @@ def doit_ansi():
     global conn
     P0(_ho)
     P0('AWS (%s) %s %s                                  build<3>\n'%\
-                                           ('asfd',time.ctime(),_el))
+                                           ('',time.ctime(),_el))
     reservations=conn.get_all_reservations()
     # name | id | type | zone | state | status-checks | alarm-status
 
@@ -77,20 +77,32 @@ def doit(style='full'):
     if style == 'full':
         doit_ansi()
 
+def awsino():
+    """get the inode of ~/.aws"""
+    oldino=os.stat(os.environ['HOME']+'/.aws')
+
 def main():
     global conn
-    cfg = awshelpers.readconfig('config')
-    ebcfg = awshelpers.readconfig('ebconfig')
-    region = cfg['default']['region']
-    output = cfg['default']['output']
-    name = ebcfg['default']['name']
-    try:
-        account = cfg['x-account']['name']
-    except KeyError:
-        account='(config: set .aws.config.x-account.name)'
-    conn = boto.ec2.connect_to_region(region)
+
+    oldino=-1
 
     while True:
+
+        newino=awsino()
+        if oldino != newino:
+            oldino=newino
+
+            cfg = awshelpers.readconfig('config')
+            ebcfg = awshelpers.readconfig('ebconfig')
+            region = cfg['default']['region']
+            output = cfg['default']['output']
+            name = ebcfg['default']['name']
+            try:
+                account = cfg['x-account']['name']
+            except KeyError:
+                account='(config: set .aws.config.x-account.name)'
+            conn = boto.ec2.connect_to_region(region)
+
         doit()
         doodle(2)
 

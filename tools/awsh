@@ -7,7 +7,7 @@ awsh -- aws shell
 """
 
 import os,sys,readline,cmd,atexit,ConfigParser,traceback,subprocess
-import fnmatch,pprint,urllib2
+import fnmatch,pprint,urllib2,stat,glob
 import boto.ec2
 import awshelpers
 from awshelpers import P,P0,D,D0
@@ -240,6 +240,14 @@ class AwshCmd(cmd.Cmd):
         except boto.exception.EC2ResponseError,e:
             P('    error: %s'%(e.message))
 
+    #-----------------------------------------------------------------------
+    def do_accounts(self,s):
+        """list accounts"""
+        P('    accounts:')
+        for p in glob.glob(os.environ['HOME']+'/.ebaws/*'):
+            P('        %s'%(os.path.basename(p)))
+        #TODO: readlink to show current
+
     # IP >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     # rough edits below >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -288,7 +296,6 @@ class AwshCmd(cmd.Cmd):
         P('authorizing: %s'%(mycidr))
         g.authorize(ip_protocol='tcp', from_port=22, to_port=22, cidr_ip=mycidr)
 
-
     # brignt ideas >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     #-----------------------------------------------------------------------
@@ -313,7 +320,7 @@ class AwshCmd(cmd.Cmd):
 
     #-----------------------------------------------------------------------
     def do_nologin(self,s):
-        """modify the box to allow single login"""
+        """modify the box to disallow single login"""
         P('COMING')
 
     #-----------------------------------------------------------------------
@@ -323,17 +330,13 @@ class AwshCmd(cmd.Cmd):
 
     #-----------------------------------------------------------------------
     def do_account(self,s):
-        """set an account"""
-        P('COMING')
-
-    #-----------------------------------------------------------------------
-    def do_account(self,s):
-        """show accounts"""
+        """set an account, similar to what's on the command line"""
         P('COMING')
 
     #-----------------------------------------------------------------------
     def do_reboot(self,s):
         """reboot an instance"""
+        #### does this even work?
         P('COMING')
 
     #-----------------------------------------------------------------------
@@ -381,13 +384,59 @@ class AwshCmd(cmd.Cmd):
                 P('  '+e.message)
 
 #-----------------------------------------------------------------------
+def muststat(p):
+    """stat a file or return None"""
+    try:
+        sb=os.lstat(p)
+    except OSError,e:
+        if e.args[0] != 2:  # "no such file or directory"
+            raise e
+        sb=None
+    return sb
+
+#-----------------------------------------------------------------------
+def findtarget():
+    """set the target aws account"""
+
+    awsdir=os.environ['HOME']+'/.aws'
+
+    if len(sys.argv) < 2:
+        if muststat(awsdir) is None:
+            P('    error: cannot access ~/.aws')
+            sys.exit(1)
+        return
+
+    targacct = sys.argv[1]
+    targdir=os.environ['HOME']+'/.ebaws/'+targacct
+
+    P('setting account to: '+targacct)
+    if muststat(targdir) is None:
+        P('    error: config does not exist: '+targdir)
+        sys.exit(1)
+
+    if os.path.isdir(awsdir) and not os.path.islink(awsdir):
+        P('    cannot set config, ~/.aws is a directory')
+        sys.exit(1)
+
+    sb=muststat(awsdir)
+
+    #TODO: check if its a dir
+
+    if sb is not None:
+        os.unlink(awsdir)
+    os.symlink(targdir,awsdir)
+
+    if muststat(awsdir) is None:
+        P('    error: cannot access ~/.aws')
+        sys.exit(1)
+
+#-----------------------------------------------------------------------
 def main():
     """The MAIN thing that you have to remember on this journey is,
        just be nice to everyone and always smile.
          -- Ed Sheeran
     """
     P0(AwshCmd.__doc__)
-    cc=AwshCmd()
 
     # configuration files and
     # command history, with some goofiness to make it work on mac
@@ -396,11 +445,13 @@ def main():
     try:
         os.mkdir(EBDIR)
     except OSError,e:
-        if e.args[0] != 17: # "File Exists")
+        if e.args[0] != 17: # "File Exists"
             raise e
 
-    #TODO: make this per-account
-    historyFile=EBDIR+"/ebaws-history"
+    # set up target acct
+    findtarget()
+
+    historyFile=os.environ['HOME']+"/.aws/history"
     open(historyFile,'a').close()
 
     if os.path.exists(historyFile):
@@ -413,6 +464,7 @@ def main():
         readline.write_history_file(historyFile)
     atexit.register(writeHistory)
 
+    cc=AwshCmd()
     while True:
         try:
             cc.cmdloop()
