@@ -90,21 +90,24 @@ class AwshCmd(cmd.Cmd):
         print(ip.strip())
 
     #-----------------------------------------------------------------------
+    def _attrlist(self,obj, attrs):
+        """get a list of named attributes from an object"""
+        vlist = [obj.__getattribute__(attr) for attr in attrs]
+        return vlist
+        
+    #-----------------------------------------------------------------------
     def do_instances(self,s):
         """print information about instances"""
-        # BUG: nuke i0, should be for instance in instances???
 
         dat=[]
-        headers='id addr type zone state status alarm'.split()
+        headers='id ip_address instance_type placement state'.split()
         for r in self.conn.get_all_reservations():
-            instances=r.instances
-            i0=instances[0]
-            if i0.state != 'terminated':
-                row=[i0.id,i0.ip_address,i0.instance_type,i0.placement,
-                     i0.state,'___','___']
-                dat.append(row)
+            for inst in r.instances:
+                if inst.state != 'terminated':
+                    dat.append(self._attrlist(inst,headers))
         awshelpers.tprintx(headers,dat)
 
+    #-----------------------------------------------------------------------
     def do_volumes(self,s):
         """print information about volumes"""
         # TODO: what else is useful? tags? snapshots? dir(v)
@@ -119,14 +122,21 @@ class AwshCmd(cmd.Cmd):
     #-----------------------------------------------------------------------
     def do_ssh(self,s):
         """show ssh commands for running nodes"""
-        # BUG: nuke i0, should be for instance in instances???
-
         for r in self.conn.get_all_reservations():
-            i0=instances=r.instances[0]
-            if i0.state in ['running','pending']:
-                addr=str(i0.ip_address)
-                P('ssh -i %s/.aws/%s ec2-user@%s'% \
-                  (os.environ['HOME'],self.pemfile,addr))
+            for i0 in r.instances:
+                if i0.state in ['running','pending']:
+                    addr=str(i0.ip_address)
+                    P('ssh -i %s/.aws/%s ec2-user@%s'% \
+                      (os.environ['HOME'],self.pemfile,addr))
+
+    #-----------------------------------------------------------------------
+    def do_curltest(self,s):
+        """show curl commands for running nodes"""
+        for r in self.conn.get_all_reservations():
+            for inst in r.instances:
+                if inst.state in ['running']:
+                    P('curl http://%s'%(inst.ip_address))
+                    P('curl http://%s/cgi-bin/working'%(inst.ip_address))
 
     #-----------------------------------------------------------------------
     def do_div0(self,s):
@@ -191,7 +201,8 @@ class AwshCmd(cmd.Cmd):
 
         try:
             rv=self.conn.start_instances(instance_ids=b)
-            P(rv)
+            for i in rv:
+                P('    starting: %s'%(i))
         except boto.exception.EC2ResponseError,e:
             P('    error: %s'%(e.message))
 
@@ -224,10 +235,10 @@ class AwshCmd(cmd.Cmd):
 
         try:
             rv=self.conn.stop_instances(instance_ids=b)
-            P(rv)
+            for i in rv:
+                P('    stopping: %s'%(i))
         except boto.exception.EC2ResponseError,e:
             P('    error: %s'%(e.message))
-
 
     # IP >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -320,6 +331,16 @@ class AwshCmd(cmd.Cmd):
         """show accounts"""
         P('COMING')
 
+    #-----------------------------------------------------------------------
+    def do_reboot(self,s):
+        """reboot an instance"""
+        P('COMING')
+
+    #-----------------------------------------------------------------------
+    def do_console(self,s):
+        """open an AWS web console"""
+        P('COMING')
+
     # revisit these >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     #-----------------------------------------------------------------------
@@ -367,8 +388,20 @@ def main():
     """
     P0(AwshCmd.__doc__)
     cc=AwshCmd()
-    historyFile = os.getenv("AWSH_HISTORY",
-                 os.getenv('HOME')+"/.awsh-history")
+
+    # configuration files and
+    # command history, with some goofiness to make it work on mac
+
+    EBDIR=os.environ['HOME']+'/.ebaws'
+    try:
+        os.mkdir(EBDIR)
+    except OSError,e:
+        if e.args[0] != 17: # "File Exists")
+            raise e
+
+    #TODO: make this per-account
+    historyFile=EBDIR+"/ebaws-history"
+    open(historyFile,'a').close()
 
     if os.path.exists(historyFile):
         # gnu/libedit readline weirdness on macos. see
