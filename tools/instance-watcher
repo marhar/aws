@@ -6,8 +6,8 @@ instance-watcher -- watch aws instances
     Mark Harrison, marhar@gmail.com     :
 """
 
-#TODO: look at stuff for all ebaws accounts
 #TODO: shows stats for other things besides ec2
+#TODO: clean up code structure since now it's a pure ansi terminal thing
 
 import os,sys,time
 import boto.ec2
@@ -16,34 +16,12 @@ from pprint import pprint
 from awshelpers import P,P0,tprint,tprintx
 
 #-----------------------------------------------------------------------
-def doit_scroll():
-    global conn
-    P('------')
-    P('AWS Instances '+time.ctime())
-
-    reservations=conn.get_all_reservations()
-    for r in reservations:
-        instances=r.instances
-        i0=instances[0]
-        P('            instance-id: '+i0.id)
-        P('          instance-type: '+i0.instance_type)
-        P('      availability-zone: '+i0.placement)
-        P('         instance-state: '+i0.state)
-        ###P('         instance-state: '+i0.monitoring_state)
-        P('          status-checks: '+'___')
-        P('           alarm-status: '+'___')
-        P('                      ?: '+i0.image_id)
-        P('')
-
-#-----------------------------------------------------------------------
 _ho='\033[H'; _ed='\033[J'; _el='\033[K'  # ansi esc sequences
-def doit_ansi():
+def doit(conn,profile):
     """show status with nice looking update"""
 
-    global conn
-    P0(_ho)
-    P0('AWS (%s) %s %s                                  build<3>\n'%\
-                                           ('',time.ctime(),_el))
+    P0('AWS (%s) %s %s                           build<3>\n'%\
+                                           (profile,time.ctime(),_el))
     reservations=conn.get_all_reservations()
     # name | id | type | zone | state | status-checks | alarm-status
 
@@ -72,45 +50,56 @@ def doodle(period):
         P0('\r-  '+_ed); time.sleep(n)
         P0('\r\\  '+_ed); time.sleep(n)
 
-def doit(style='full'):
-    """vector doit call to appropriate display routine"""
-    if style == 'full':
-        doit_ansi()
-
-def awsino():
-    """get the inode of ~/.aws"""
-    sb=os.stat(os.environ['HOME']+'/.aws')
-    return sb.st_ino
-
 def main():
-    global conn
+    if len(sys.argv) >= 2:
+        profile=sys.argv[1]
+    else:
+        profile='default'
 
-    oldino=-1
+    cfg = awshelpers.readconfig('config')
+    credentials=awshelpers.readconfig('credentials')
 
-    while True:
+    if profile != '--all':
+        p2=profile
+        if profile != 'default':
+            p2 = 'profile '+p2
 
-        newino=awsino()
-        if oldino != newino:
-            oldino=newino
+        region = cfg[p2]['region']
+        output = cfg[p2]['output']
+        accesskey = credentials[profile]['aws_access_key_id']
+        secretkey = credentials[profile]['aws_secret_access_key']
 
-            cfg = awshelpers.readconfig('config')
-            ebcfg = awshelpers.readconfig('ebconfig')
-            region = cfg['default']['region']
-            output = cfg['default']['output']
-            name = ebcfg['default']['name']
-            try:
-                account = cfg['x-account']['name']
-            except KeyError:
-                account='(config: set .aws.config.x-account.name)'
-            conn = boto.ec2.connect_to_region(region)
-
-        doit()
-        doodle(3)
+    allprofiles=[]
+    for pp in credentials.keys():
+        if pp != 'default':
+            allprofiles.append(pp)
+            
+    if profile == '--all':
+        while True:
+            P0(_ho)
+            for pp in allprofiles:
+                pp2='profile '+pp
+                conn = boto.ec2.connect_to_region(cfg[pp2]['region'],
+                    aws_access_key_id=
+                                 credentials[pp]['aws_access_key_id'],
+                aws_secret_access_key=
+                                 credentials[pp]['aws_secret_access_key'])
+                doit(conn,pp)
+                P(_el)
+            doodle(3)
+    else:
+        conn = boto.ec2.connect_to_region(region,
+                  aws_access_key_id=accesskey,
+                  aws_secret_access_key=secretkey)
+        while True:
+            P0(_ho)
+            doit(conn,profile)
+            doodle(3)
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
         P('^C')
-        P('')
+        P(_ed)
         sys.exit(0)

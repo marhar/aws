@@ -24,26 +24,35 @@ class AwshCmd(cmd.Cmd):
     #===================================================================
 
     #-------------------------------------------------------------------
-    def __init__(self):
+    def __init__(self,profile='default'):
         """AwshCmd init"""
         cmd.Cmd.__init__(self)
 
-        config=awshelpers.readconfig('config')
-        self.region = config['default']['region']
-        self.output = config['default']['output']
+        self.profile=profile
+        self.pemfile = '%s.pem'%(self.profile)
 
-        ebconfig=awshelpers.readconfig('ebconfig')
-        try:
-            self.name = ebconfig['default']['name']
-        except KeyError:
-            self.name = 'setNameInEBCONFIG'
-        try:
-            self.pemfile = ebconfig['default']['pemfile']
-        except KeyError:
-            self.pemfile = 'setPemFileInEBCONFIG'
+        p2=profile
+        if profile != 'default':
+            p2 = 'profile '+p2
 
-        self.conn = boto.ec2.connect_to_region(self.region)
-        self.prompt='%s@%s> '%(self.name,self.region)
+        try:
+            config=awshelpers.readconfig('config')
+            self.region = config[p2]['region']
+            self.output = config[p2]['output']
+
+            credentials=awshelpers.readconfig('credentials')
+            accesskey = credentials[self.profile]['aws_access_key_id']
+            secretkey = credentials[self.profile]['aws_secret_access_key']
+        except KeyError, e:
+            P('    error with profile: '+profile)
+            P('    key access error reading configuration')
+            P('    %s'%(e))
+            sys.exit(1)
+
+        self.prompt='%s@%s> '%(self.profile,self.region)
+        self.conn = boto.ec2.connect_to_region(self.region,
+                                           aws_access_key_id=accesskey,
+                                           aws_secret_access_key=secretkey)
 
     #-------------------------------------------------------------------
     def emptyline(self):
@@ -62,10 +71,10 @@ class AwshCmd(cmd.Cmd):
 
     #-----------------------------------------------------------------------
     def do_config(self,s):
-        """print information about this account"""
+        """print information about this profile"""
         P('   region: %s'%(self.region))
         P('   output: %s'%(self.output))
-        P('     name: %s'%(self.name))
+        P('  profile: %s'%(self.profile))
         P('  pemfile: %s'%(self.pemfile))
 
     #-----------------------------------------------------------------------
@@ -240,14 +249,6 @@ class AwshCmd(cmd.Cmd):
         except boto.exception.EC2ResponseError,e:
             P('    error: %s'%(e.message))
 
-    #-----------------------------------------------------------------------
-    def do_accounts(self,s):
-        """list accounts"""
-        P('    accounts:')
-        for p in glob.glob(os.environ['HOME']+'/.ebaws/*'):
-            P('        %s'%(os.path.basename(p)))
-        #TODO: readlink to show current
-
     # IP >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     # rough edits below >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -329,8 +330,13 @@ class AwshCmd(cmd.Cmd):
         P('COMING')
 
     #-----------------------------------------------------------------------
-    def do_account(self,s):
-        """set an account, similar to what's on the command line"""
+    def do_profile(self,s):
+        """change the profile"""
+        P('COMING')
+
+    #-----------------------------------------------------------------------
+    def do_profiles(self,s):
+        """list profiles"""
         P('COMING')
 
     #-----------------------------------------------------------------------
@@ -384,53 +390,6 @@ class AwshCmd(cmd.Cmd):
                 P('  '+e.message)
 
 #-----------------------------------------------------------------------
-def muststat(p):
-    """stat a file or return None"""
-    try:
-        sb=os.lstat(p)
-    except OSError,e:
-        if e.args[0] != 2:  # "no such file or directory"
-            raise e
-        sb=None
-    return sb
-
-#-----------------------------------------------------------------------
-def findtarget():
-    """set the target aws account"""
-
-    awsdir=os.environ['HOME']+'/.aws'
-
-    if len(sys.argv) < 2:
-        if muststat(awsdir) is None:
-            P('    error: cannot access ~/.aws')
-            sys.exit(1)
-        return
-
-    targacct = sys.argv[1]
-    targdir=os.environ['HOME']+'/.ebaws/'+targacct
-
-    P('setting account to: '+targacct)
-    if muststat(targdir) is None:
-        P('    error: config does not exist: '+targdir)
-        sys.exit(1)
-
-    if os.path.isdir(awsdir) and not os.path.islink(awsdir):
-        P('    cannot set config, ~/.aws is a directory')
-        sys.exit(1)
-
-    sb=muststat(awsdir)
-
-    #TODO: check if its a dir
-
-    if sb is not None:
-        os.unlink(awsdir)
-    os.symlink(targdir,awsdir)
-
-    if muststat(awsdir) is None:
-        P('    error: cannot access ~/.aws')
-        sys.exit(1)
-
-#-----------------------------------------------------------------------
 def main():
     """The MAIN thing that you have to remember on this journey is,
        just be nice to everyone and always smile.
@@ -438,20 +397,13 @@ def main():
     """
     P0(AwshCmd.__doc__)
 
-    # configuration files and
-    # command history, with some goofiness to make it work on mac
+    if len(sys.argv) >= 2:
+        profile=sys.argv[1]
+    else:
+        profile=os.environ.get('AWS_DEFAULT_PROFILE','default')
+    AWSDIR=os.environ['HOME']+'/.aws'
 
-    EBDIR=os.environ['HOME']+'/.ebaws'
-    try:
-        os.mkdir(EBDIR)
-    except OSError,e:
-        if e.args[0] != 17: # "File Exists"
-            raise e
-
-    # set up target acct
-    findtarget()
-
-    historyFile=os.environ['HOME']+"/.aws/history"
+    historyFile=AWSDIR+'/%s.history'%profile
     open(historyFile,'a').close()
 
     if os.path.exists(historyFile):
@@ -464,7 +416,7 @@ def main():
         readline.write_history_file(historyFile)
     atexit.register(writeHistory)
 
-    cc=AwshCmd()
+    cc=AwshCmd(profile)
     while True:
         try:
             cc.cmdloop()
