@@ -1,5 +1,5 @@
 #!/bin/bash
-# this will set up an AMI to be php-ready
+# this will set up an AMI to be httpd-ready
 yum update -y
 yum install -y httpd
 service httpd start
