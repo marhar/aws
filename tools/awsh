@@ -129,14 +129,32 @@ class AwshCmd(cmd.Cmd):
         awshelpers.tprintx(headers,dat)
 
     #-----------------------------------------------------------------------
+    def _muststat(self,path):
+        """stat, returns None if file not found"""
+        try:
+            sb=os.stat(path)
+        except OSError,e:
+            if e.args[0] != 2:  # "No such file or directory"
+                raise e
+            sb=None
+        return sb
+
+    #-----------------------------------------------------------------------
     def do_ssh(self,s):
         """show ssh commands for running nodes"""
         for r in self.conn.get_all_reservations():
             for i0 in r.instances:
                 if i0.state in ['running','pending']:
                     addr=str(i0.ip_address)
-                    P('ssh -i %s/.aws/%s ec2-user@%s'% \
-                      (os.environ['HOME'],self.pemfile,addr))
+                    pemfile='%s/.aws/%s'%(os.environ['HOME'],self.pemfile)
+                    sb=self._muststat(pemfile)
+                    if sb is None:
+                        P('no pemfile: '+pemfile)
+                    elif (sb.st_mode & 0777) != 0400:
+                        P('pemfile perms must be 0400, not %o: %s'%\
+                                                    (sb.st_mode,pemfile))
+                    P('ssh -i %s ec2-user@%s'% \
+                      (pemfile,addr))
 
     #-----------------------------------------------------------------------
     def do_curltest(self,s):

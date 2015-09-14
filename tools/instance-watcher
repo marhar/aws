@@ -92,7 +92,7 @@ def main():
                                 credentials[pp]['aws_secret_access_key'])
                 doit(conn,pp)
                 P(_el)
-            doodle(10)
+            doodle(len(allprofiles)*5)
 
     #-----------------------------
     # just watch one profile
