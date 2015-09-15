@@ -27,6 +27,7 @@ class AwshCmd(cmd.Cmd):
     def __init__(self,profile='default'):
         """AwshCmd init"""
         cmd.Cmd.__init__(self)
+        readline.set_completer_delims(' ')
 
         self.profile=profile
         self.pemfile = '%s.pem'%(self.profile)
@@ -182,24 +183,30 @@ class AwshCmd(cmd.Cmd):
         return rv
 
     #-----------------------------------------------------------------------
+    def _instance_complete(self, text, line, begidx, endidx, notstates):
+        """instance-specific completer, state must be as specified"""
+        choices=[]
+        for x in self._instancelist():
+            if x[1] not in notstates:
+                choices.append(x[0])
+
+        matches=[]
+        for x in choices:
+            if x.startswith(text):
+                matches.append(x)
+        return matches
+
+    #-----------------------------------------------------------------------
     def complete_start(self, text, line, begidx, endidx):
         """start completions: instances which are not running"""
-        #TODO: need to handle multiple completions per line
-        #BUG: needs some fiddling
+        notstates=['running','pending']
+        return self._instance_complete(text,line,begidx,endidx,notstates)
 
-        #print 'text<%s,%s,%s,%s>'%(text,line,begidx,endidx)
-        x=self._instancelist()
-
-        hlen=len('start ')  # TODO: should be able to skip using begidx?
-        partial=line[hlen:].strip()
-
-        if len(partial) == 0:
-            rv=[i[0] for i in x if i[1] not in 'running']
-        else:
-            plen=len(partial)
-            rv=[i[0][plen-1:] for i in x if i[0].startswith(partial)
-                                    and i[1] not in 'running']
-        return rv
+    #-----------------------------------------------------------------------
+    def complete_stop(self, text, line, begidx, endidx):
+        """start completions: instances which are not running"""
+        notstates=['stopped','stopping']
+        return self._instance_complete(text,line,begidx,endidx,notstates)
 
     #-----------------------------------------------------------------------
     def do_start(self,s):
@@ -237,7 +244,6 @@ class AwshCmd(cmd.Cmd):
     #-----------------------------------------------------------------------
     def do_stop(self,s):
         """stop one or more instances"""
-        #TODO: complete_stop
 
         a=s.split()
         if len(a) == 0:
