@@ -111,11 +111,15 @@ class AwshCmd(cmd.Cmd):
 
         dat=[]
         headers='id ip_address instance_type placement state'.split()
+        #TODO: figure out better way of patching in Name
         for r in self.conn.get_all_reservations():
             for inst in r.instances:
                 if inst.state != 'terminated':
                     dat.append(self._attrlist(inst,headers))
+                dat[len(dat)-1].insert(1,inst.tags.get('Name','notSet'))
+        headers.insert(1,'Name')
         awshelpers.tprintx(headers,dat)
+        i0=self.conn.get_all_reservations()[0].instances[0]
 
     #-----------------------------------------------------------------------
     def do_volumes(self,s):
