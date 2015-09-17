@@ -1,0 +1,11 @@
+#!/bin/bash
+yum install httpd -y
+yum update -y
+aws s3 cp -recursive s3:/MYBUCKET /var/www
+chkconfig httpd on
+service httpd start
+groupadd www
+usermod -a -G www ec2-user
+chown -R root:www /var/www
+chmod 2775 /var/www
+find /var/www -type d -exec chmod 2775 {} +
