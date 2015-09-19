@@ -32,14 +32,16 @@ def doit(conn,profile):
     # name | id | type | zone | state | status-checks | alarm-status
 
     dat=[]
-    headers='id addr type zone state status alarm'.split()
+    #TODO: figure out better way of patching in Name
+    headers='id addr type zone state'.split()
     for r in reservations:
         instances=r.instances
         i0=instances[0]
         if i0.state != 'terminated':
-            x=[i0.id,i0.ip_address,i0.instance_type,i0.placement,
-               i0.state,'___','___']
+            x=[i0.id,i0.ip_address,i0.instance_type,i0.placement,i0.state]
+            x.insert(1,i0.tags.get('Name','notSet'))
             dat.append(x)
+    headers.insert(1,'Name')
     tprintx(headers,dat)
     P0(_ed)
 

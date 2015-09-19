@@ -31,6 +31,7 @@ class AwshCmd(cmd.Cmd):
 
         self.profile=profile
         self.pemfile = '%s.pem'%(self.profile)
+        self.iname={}  # map of names -> instance ids
 
         p2=profile
         if profile != 'default':
@@ -181,9 +182,17 @@ class AwshCmd(cmd.Cmd):
         """return a list of instances and statuses"""
 
         rv=[]
+        self.iname={}
         for resv in self.conn.get_all_reservations():
             for inst in resv.instances:
+                name=inst.tags.get('Name',None)
                 rv.append([inst.id,inst.state])
+                if name is not None:
+                    rv.append([name,inst.state])
+                else:
+                    rv.append([inst.id+'-needsName',inst.state])
+                self.iname[name]=inst.id
+                self.iname[inst.id]=inst.id
         return rv
 
     #-----------------------------------------------------------------------
@@ -221,17 +230,18 @@ class AwshCmd(cmd.Cmd):
             P('    usage: start instancelist...')
             return
 
+        self._instancelist()  # refresh self.inames
         started_states=['pending','running','terminated']
         # b is list of instances match that match wc
         b=[]
         for wc in a:
             if wc.find('*')==-1 and wc.find('?')==-1:
-                b.append(wc)
+                b.append(self.iname[wc])
             else:
                 for c in [i[0] for i in self._instancelist() \
                                  if i[1] not in started_states]:
                     if fnmatch.fnmatch(c,wc):
-                        b.append(c)
+                        b.append(self.iname[c])
 
         if len(b) == 0:
             P('    error: no unstarted instance matches: %s'%s)
@@ -254,17 +264,18 @@ class AwshCmd(cmd.Cmd):
             P('    usage: stop instancelist...')
             return
 
+        self._instancelist()  # refresh self.inames
         stopped_states=['stopping','stopped','terminated']
         # b is list of instances match that match wc
         b=[]
         for wc in a:
             if wc.find('*')==-1 and wc.find('?')==-1:
-                b.append(wc)
+                b.append(self.iname[wc])
             else:
                 for c in [i[0] for i in self._instancelist() \
                                  if i[1] not in stopped_states]:
                     if fnmatch.fnmatch(c,wc):
-                        b.append(c)
+                        b.append(self.iname[c])
 
         if len(b) == 0:
             P('    error: no unstopped instance matches: %s'%s)
@@ -276,6 +287,13 @@ class AwshCmd(cmd.Cmd):
                 P('    stopping: %s'%(i))
         except boto.exception.EC2ResponseError,e:
             P('    error: %s'%(e.message))
+
+    #-----------------------------------------------------------------------
+    def do_console(self,s):
+        """open an AWS web console"""
+        #TODO: make work on non-OSX
+        P("make sure you're logged in to "+self.profile)
+        os.system('open https://aws.amazon.com/console')
 
     # IP >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -370,11 +388,6 @@ class AwshCmd(cmd.Cmd):
     #-----------------------------------------------------------------------
     def FUTURE_do_reboot(self,s):
         """reboot an instance"""
-        P('COMING')
-
-    #-----------------------------------------------------------------------
-    def FUTURE_do_console(self,s):
-        """open an AWS web console"""
         P('COMING')
 
     # revisit these >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
