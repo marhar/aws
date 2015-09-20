@@ -117,7 +117,7 @@ class AwshCmd(cmd.Cmd):
             for inst in r.instances:
                 if inst.state != 'terminated':
                     dat.append(self._attrlist(inst,headers))
-                dat[len(dat)-1].insert(1,inst.tags.get('Name','notSet'))
+                    dat[len(dat)-1].insert(1,inst.tags.get('Name','notSet'))
         headers.insert(1,'Name')
         awshelpers.tprintx(headers,dat)
         i0=self.conn.get_all_reservations()[0].instances[0]
@@ -185,14 +185,15 @@ class AwshCmd(cmd.Cmd):
         self.iname={}
         for resv in self.conn.get_all_reservations():
             for inst in resv.instances:
-                name=inst.tags.get('Name',None)
-                rv.append([inst.id,inst.state])
-                if name is not None:
-                    rv.append([name,inst.state])
-                else:
-                    rv.append([inst.id+'-needsName',inst.state])
-                self.iname[name]=inst.id
-                self.iname[inst.id]=inst.id
+                if inst.state != 'terminated':
+                    name=inst.tags.get('Name',None)
+                    rv.append([inst.id,inst.state])
+                    if name is not None:
+                        rv.append([name,inst.state])
+                    else:
+                        rv.append([inst.id+'-needsName',inst.state])
+                    self.iname[name]=inst.id
+                    self.iname[inst.id]=inst.id
         return rv
 
     #-----------------------------------------------------------------------
