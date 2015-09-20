@@ -7,10 +7,10 @@ awsh -- aws shell
 """
 
 import os,sys,readline,cmd,atexit,ConfigParser,traceback,subprocess
-import fnmatch,pprint,urllib2,stat,glob
-import boto.ec2
+import fnmatch,pprint,urllib2,stat,glob,types,collections
+import boto.ec2,boto.sqs
 import awshelpers
-from awshelpers import P,P0,D,D0
+from awshelpers import P,P0,D,D0,T
 
 class AwshCmd(cmd.Cmd):
     """--------------------------------------------------\n"""\
@@ -63,9 +63,56 @@ class AwshCmd(cmd.Cmd):
 
     #-------------------------------------------------------------------
     def do_EOF(self,s):
-        """quit"""
+        """INTERNAL: quit"""
         P('')
         sys.exit(0);
+
+    #-------------------------------------------------------------------
+    def do_quit(self,s):
+        """awsh: quit the program"""
+        # this could be 'do_quit = do_EOF' but it messes up help.
+        sys.exit(0);
+
+    #-------------------------------------------------------------------
+    def do_help(self,s):
+        """awsh: print some help stuff"""
+        s=s.strip(';')
+        if s != '': # cmd-specific help
+            func='do_'+s
+            if AwshCmd.__dict__.has_key(func):
+                hh=AwshCmd.__dict__[func].__doc__.split(':')
+                P('    %s'%(':'.join(hh[1:])))
+            else:
+                P('    no help for %s'%(s))
+
+        else:  # generic parm-less help
+            funclist=[x[3:] for x,y in AwshCmd.__dict__.items()
+                      if type(y) == types.FunctionType
+                       and x.startswith('do_')]
+            mxlen=max([len(f) for f in funclist])
+
+            helptext={}
+            categories=collections.defaultdict(list)
+
+            for f in funclist:
+                hh=AwshCmd.__dict__['do_'+f].__doc__.split(':')
+                categories[hh[0]].append(f)
+                helptext[f]=hh[1].strip()
+
+            try:
+                del(categories['INTERNAL'])
+            except KeyError:
+                pass
+            try:
+                del(categories['undoc'])
+            except KeyError:
+                pass
+
+            P(__doc__)
+            for k in sorted(categories.keys()):
+                P('  %s:'%(k))
+                for f in sorted(categories[k]):
+                    P('    %*s : %s'%(mxlen,f,helptext[f]))
 
     #===================================================================
     # shell commands
@@ -73,7 +120,7 @@ class AwshCmd(cmd.Cmd):
 
     #-----------------------------------------------------------------------
     def do_config(self,s):
-        """print information about this profile"""
+        """devops: print information about this profile"""
         P('   region: %s'%(self.region))
         P('   output: %s'%(self.output))
         P('  profile: %s'%(self.profile))
@@ -81,7 +128,7 @@ class AwshCmd(cmd.Cmd):
 
     #-----------------------------------------------------------------------
     def do_reservations(self,s):
-        """display reservations"""
+        """ec2: display reservations"""
         # TODO: figure out any more useful info to display?
         # BUG: nuke i0, should be for instance in instances???
         reservations=self.conn.get_all_reservations()
@@ -95,7 +142,7 @@ class AwshCmd(cmd.Cmd):
 
     #-----------------------------------------------------------------------
     def do_myip(self,s):
-        """what's my ip address according to amazon?"""
+        """devops: what's my ip address according to amazon?"""
         fd=urllib2.urlopen("http://checkip.amazonaws.com")
         ip=fd.read()
         print(ip.strip())
@@ -108,7 +155,7 @@ class AwshCmd(cmd.Cmd):
         
     #-----------------------------------------------------------------------
     def do_instances(self,s):
-        """print information about instances"""
+        """ec2: print information about instances"""
 
         dat=[]
         headers='id ip_address instance_type placement state'.split()
@@ -124,7 +171,7 @@ class AwshCmd(cmd.Cmd):
 
     #-----------------------------------------------------------------------
     def do_volumes(self,s):
-        """print information about volumes"""
+        """ec2: print information about volumes"""
         # TODO: what else is useful? tags? snapshots? dir(v)
 
         dat=[]
@@ -147,7 +194,7 @@ class AwshCmd(cmd.Cmd):
 
     #-----------------------------------------------------------------------
     def do_ssh(self,s):
-        """show ssh commands for running nodes"""
+        """devops: show ssh commands for running nodes"""
         for r in self.conn.get_all_reservations():
             for i0 in r.instances:
                 if i0.state in ['running','pending']:
@@ -164,7 +211,7 @@ class AwshCmd(cmd.Cmd):
 
     #-----------------------------------------------------------------------
     def do_curltest(self,s):
-        """show curl commands for running nodes"""
+        """devops: curl commands for testing running nodes"""
         for r in self.conn.get_all_reservations():
             for inst in r.instances:
                 if inst.state in ['running']:
@@ -173,7 +220,7 @@ class AwshCmd(cmd.Cmd):
 
     #-----------------------------------------------------------------------
     def do_div0(self,s):
-        """devel: test case for runtime error reporting"""
+        """devel: divide by zero, test case for runtime error reporting"""
         x=1/0
         #TODO: add build number, auto report bug
 
@@ -224,7 +271,7 @@ class AwshCmd(cmd.Cmd):
 
     #-----------------------------------------------------------------------
     def do_start(self,s):
-        """start one or more instances"""
+        """ec2: start one or more instances"""
 
         a=s.split()
         if len(a) == 0:
@@ -258,7 +305,7 @@ class AwshCmd(cmd.Cmd):
 
     #-----------------------------------------------------------------------
     def do_stop(self,s):
-        """stop one or more instances"""
+        """ec2: stop one or more instances"""
 
         a=s.split()
         if len(a) == 0:
@@ -291,7 +338,7 @@ class AwshCmd(cmd.Cmd):
 
     #-----------------------------------------------------------------------
     def do_console(self,s):
-        """open an AWS web console"""
+        """devops: open an AWS web console"""
         #TODO: make work on non-OSX
         P("make sure you're logged in to "+self.profile)
         os.system('open https://aws.amazon.com/console')
@@ -302,7 +349,7 @@ class AwshCmd(cmd.Cmd):
 
     #-----------------------------------------------------------------------
     def do_launch(self,s):
-        """launch an instance"""
+        """ec2: launch an instance"""
         x=self.conn.run_instances('ami-d7450be7',
                                 key_name='mhtest',
                                 instance_type='t2.micro',
@@ -347,55 +394,77 @@ class AwshCmd(cmd.Cmd):
     # brignt ideas >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     #-----------------------------------------------------------------------
+    def do_queues(self,s):
+        """sqs: list queues"""
+        self.sqsconn=boto.sqs.connect_to_region(self.region)
+
+        dat=[]
+        headers='name'.split()
+        for q in self.sqsconn.get_all_queues():
+            dat.append(self._attrlist(q,headers))
+            dat[len(dat)-1].append(str(q.count()))
+            dat[len(dat)-1].append(str(q.count_slow()))
+        headers.append('count')
+        headers.append('count_slow')
+        print headers
+        print dat
+        awshelpers.tprintx(headers,dat)
+
+    #-----------------------------------------------------------------------
+    def FUTURE_do_iam(self,s):
+        """iam: print iam configuration"""
+        P('COMING')
+
+    #-----------------------------------------------------------------------
     def FUTURE_do_hints(self,s):
-        """print some useful hints"""
+        """undoc: print some useful hints"""
         P('COMING')
 
     #-----------------------------------------------------------------------
     def FUTURE_do_web(self,s):
-        """open a web page with docs? status?"""
+        """undoc: open a web page with docs? status?"""
         P('COMING')
 
     #-----------------------------------------------------------------------
     def FUTURE_do_watcher(self,s):
-        """run the watcher in another window"""
+        """undoc: run the watcher in another window"""
         P('COMING')
 
     #-----------------------------------------------------------------------
     def FUTURE_do_login(self,s):
-        """modify the box to allow single ip login from this box"""
+        """undoc: modify the box to allow single ip login from this box"""
         P('COMING')
 
     #-----------------------------------------------------------------------
     def FUTURE_do_nologin(self,s):
-        """modify the box to disallow single login"""
+        """undoc: modify the box to disallow single login"""
         P('COMING')
 
     #-----------------------------------------------------------------------
     def FUTURE_do_region(self,s):
-        """set the region"""
+        """undoc: set the region"""
         P('COMING')
 
     #-----------------------------------------------------------------------
     def FUTURE_do_profile(self,s):
-        """change the profile"""
+        """undoc: change the profile"""
         P('COMING')
 
     #-----------------------------------------------------------------------
     def FUTURE_do_profiles(self,s):
-        """list profiles"""
+        """undoc: list profiles"""
         P('COMING')
 
     #-----------------------------------------------------------------------
     def FUTURE_do_reboot(self,s):
-        """reboot an instance"""
+        """undoc: reboot an instance"""
         P('COMING')
 
     # revisit these >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     #-----------------------------------------------------------------------
     def THINK_ABOUT_THIS_do_terminate(self,s):
-        """terminate an instance"""
+        """ec2: terminate an instance"""
 
         P("    use stop to stop an instance. don't terminate here for now...")
         return
