@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+
+import cgi
+import json
+import boto.sqs
+
+import cgitb
+cgitb.enable()
+
+
+print "Content-Type: text/plain;charset=utf-8"
+print
+
+form = cgi.FieldStorage()
+x = form.getvalue('x',None)
+y = form.getvalue('y',None)
+op = form.getvalue('op',None)
+
+if    x  is None: resp=['err', 'x is required']
+elif  y  is None: resp=['err', 'y is required']
+elif op  is None: resp=['err','op is required']
+elif op == 'add': resp=['ok', int(x)+int(y)]
+elif op == 'mul': resp=['ok', int(x)*int(y)]
+elif op == 'sub': resp=['ok', int(x)-int(y)]
+elif op == 'div' and int(y) == 0: resp=['err', 'division by zero']
+elif op == 'div': resp=['ok', int(x)/int(y)]
+else: resp=['err', 'op must be: add/mul/sub/div']
+
+sqsconn=boto.sqs.connect_to_region('us-west-2')
+mathq=sqsconn.get_queue('mathq')
+m=boto.sqs.message.Message()
+s=json.dumps([resp[0],op])
+m.set_body(s)
+mathq.write(m)
+
+print json.dumps(resp)
