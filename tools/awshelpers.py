@@ -62,6 +62,12 @@ def V(s):
     """verbose print and flush, with newline. --quiet to supress"""
     V0(str(s)+'\n')
 
+#-----------------------------------------------------------------------
+def T(obj,help=None):
+    """print type and dir of object"""
+    P(type(obj))
+    P(dir(obj))
+
 #-------------------------------------------------------------------
 def tprint(headers,rows):
     """nicely print a result set"""
