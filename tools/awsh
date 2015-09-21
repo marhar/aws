@@ -43,8 +43,8 @@ class AwshCmd(cmd.Cmd):
             self.output = config[p2]['output']
 
             credentials=awshelpers.readconfig('credentials')
-            accesskey = credentials[self.profile]['aws_access_key_id']
-            secretkey = credentials[self.profile]['aws_secret_access_key']
+            self.accesskey = credentials[self.profile]['aws_access_key_id']
+            self.secretkey = credentials[self.profile]['aws_secret_access_key']
         except KeyError, e:
             P('    error with profile: '+profile)
             P('    key access error reading configuration')
@@ -52,9 +52,14 @@ class AwshCmd(cmd.Cmd):
             sys.exit(1)
 
         self.prompt='%s@%s> '%(self.profile,self.region)
+
         self.conn = boto.ec2.connect_to_region(self.region,
-                                           aws_access_key_id=accesskey,
-                                           aws_secret_access_key=secretkey)
+                                  aws_access_key_id=self.accesskey,
+                                  aws_secret_access_key=self.secretkey)
+
+        self.sqsconn=boto.sqs.connect_to_region(self.region,
+                                  aws_access_key_id=self.accesskey,
+                                  aws_secret_access_key=self.secretkey)
 
     #-------------------------------------------------------------------
     def emptyline(self):
@@ -75,7 +80,7 @@ class AwshCmd(cmd.Cmd):
 
     #-------------------------------------------------------------------
     def do_help(self,s):
-        """awsh: print some help stuff"""
+        """awsh: print help information"""
         s=s.strip(';')
         if s != '': # cmd-specific help
             func='do_'+s
@@ -113,6 +118,11 @@ class AwshCmd(cmd.Cmd):
                 P('  %s:'%(k))
                 for f in sorted(categories[k]):
                     P('    %*s : %s'%(mxlen,f,helptext[f]))
+
+    #-------------------------------------------------------------------
+    def do_shell(self,s):
+        """awsh: invoke a shell command"""
+        os.system(s)
 
     #===================================================================
     # shell commands
@@ -394,20 +404,73 @@ class AwshCmd(cmd.Cmd):
     # brignt ideas >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     #-----------------------------------------------------------------------
+    def complete_queue(self, text, line, begidx, endidx):
+        """queue completions"""
+        pline=line[begidx:endidx]
+        a=line.split()
+
+        subcmds=[
+            'add-permission', 'change-message-visibility',
+            'create',
+            'delete-message',
+            'delete', 'attributes',
+            'url', 'help',
+            'dead-letter-source', 'list',
+            'purge', 'receive-message',
+            'remove-permission', 'send-message',
+            'send-message', 'set-attributes',]
+
+        #TODO: can we combine cases 1,2 and 3,4?
+        if len(a) == 1:
+            #complete all subcmds
+            return subcmds
+        elif len(a) == 2 and a[1]==pline:
+            #complete matching subcmds
+            matches=[x for x in subcmds if x.startswith(a[1])]
+            return matches
+        elif len(a) == 2 and pline=='':
+            # complete all queue names
+            matches=[]
+            self.q_name_to_url={}
+            self.q_url_to_name={}
+            for q in self.sqsconn.get_all_queues():
+                matches.append(q.name)
+                matches.append(q.url)
+                self.q_name_to_url[q.name]=q.url
+                self.q_url_to_name[q.url]=q.name
+                return matches
+        else:
+            # complete matching queue names
+            matches=[]
+            self.q_name_to_url={}
+            self.q_url_to_name={}
+            for q in self.sqsconn.get_all_queues():
+                self.q_name_to_url[q.name]=q.url
+                self.q_url_to_name[q.url]=q.name
+                if q.name.startswith(pline):
+                    matches.append(q.name)
+                if q.url.startswith(pline):
+                    matches.append(q.url)
+            return matches
+
+    #-----------------------------------------------------------------------
+    def do_queue(self,s):
+        """sqs: queue commands"""
+        P('note: command does nothing at this time')
+        P('queue<%s>'%s)
+
+    #-----------------------------------------------------------------------
     def do_queues(self,s):
         """sqs: list queues"""
-        self.sqsconn=boto.sqs.connect_to_region(self.region)
 
         dat=[]
-        headers='name'.split()
+        headers='name url'.split()
         for q in self.sqsconn.get_all_queues():
             dat.append(self._attrlist(q,headers))
             dat[len(dat)-1].append(str(q.count()))
             dat[len(dat)-1].append(str(q.count_slow()))
         headers.append('count')
         headers.append('count_slow')
-        print headers
-        print dat
         awshelpers.tprintx(headers,dat)
 
     #-----------------------------------------------------------------------
