@@ -1,9 +1,10 @@
 #!/bin/sh
+IP=$1
 rm -f test2.out
-(curl -s 'http://localhost:8888/math?op=add&x=4&y=5'
-curl -s 'http://localhost:8888/math?op=sub&x=4&y=5'
-curl -s 'http://localhost:8888/math?op=mul&x=4&y=5'
-curl -s 'http://localhost:8888/math?op=div&x=4&y=5') >test2.out
+(curl -s 'http://$IP/cgi-bin/mathserver?op=add&x=4&y=5'
+curl -s 'http://$IP/cgi-bin/mathserver?op=sub&x=4&y=5'
+curl -s 'http://$IP/cgi-bin/mathserver?op=mul&x=4&y=5'
+curl -s 'http://$IP/cgi-bin/mathserver?op=div&x=4&y=5') >test2.out
 diff test2.out test2.expected
 if test $? -eq 0; then
     echo good

@@ -1,12 +1,8 @@
 #!/usr/bin/env python
 
-import cgi
-import json
+import sys,os,cgi,json,cgitb
 import boto.sqs
-
-import cgitb
 cgitb.enable()
-
 
 print "Content-Type: text/plain;charset=utf-8"
 print
@@ -26,10 +22,14 @@ elif op == 'div' and int(y) == 0: resp=['err', 'division by zero']
 elif op == 'div': resp=['ok', int(x)/int(y)]
 else: resp=['err', 'op must be: add/mul/sub/div']
 
+remote_addr=os.environ.get('REMOTE_ADDR','not-set')
+server_name=os.environ.get('SERVER_NAME','not-set')
+
 sqsconn=boto.sqs.connect_to_region('us-west-2')
 mathq=sqsconn.get_queue('mathq')
 m=boto.sqs.message.Message()
-s=json.dumps([resp[0],op])
+resp.append({'server':server_name,'remote':remote_addr})
+s=json.dumps(resp,separators=(',',':'))
 m.set_body(s)
 mathq.write(m)
 
