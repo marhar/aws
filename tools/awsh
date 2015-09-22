@@ -7,16 +7,31 @@ awsh -- aws shell
 """
 
 import os,sys,readline,cmd,atexit,ConfigParser,traceback,subprocess
-import fnmatch,pprint,urllib2,stat,glob,types,collections
+import fnmatch,pprint,urllib2,stat,glob,types,collections,threading
 import boto.ec2,boto.sqs
 import awshelpers
 from awshelpers import P,P0,D,D0,T
 
+#-----------------------------------------------------------------------
+def setEc2Conn(obj):
+    """connect to ec2"""
+    obj.conn = boto.ec2.connect_to_region(obj.region,
+                              aws_access_key_id=obj.accesskey,
+                              aws_secret_access_key=obj.secretkey)
+
+#-----------------------------------------------------------------------
+def setSqsConn(obj):
+    """connect to sqs"""
+    obj.sqsconn=boto.sqs.connect_to_region(obj.region,
+                              aws_access_key_id=obj.accesskey,
+                              aws_secret_access_key=obj.secretkey)
+
+#-----------------------------------------------------------------------
 class AwshCmd(cmd.Cmd):
     """--------------------------------------------------\n"""\
     """| Welcome to awsh, the AWS shell                 |\n"""\
     """| docs: https://github.com/marhar/aws            |\n"""\
-    """| type "help" for help                  build<5> |\n"""\
+    """| type "help" for help                  build<6> |\n"""\
     """--------------------------------------------------\n"""
 
     #===================================================================
@@ -53,13 +68,14 @@ class AwshCmd(cmd.Cmd):
 
         self.prompt='%s@%s> '%(self.profile,self.region)
 
-        self.conn = boto.ec2.connect_to_region(self.region,
-                                  aws_access_key_id=self.accesskey,
-                                  aws_secret_access_key=self.secretkey)
-
-        self.sqsconn=boto.sqs.connect_to_region(self.region,
-                                  aws_access_key_id=self.accesskey,
-                                  aws_secret_access_key=self.secretkey)
+        # connect via threads for fast startup
+        #TODO: parameterize this so we can loop over?
+        t1=threading.Thread(target=setEc2Conn,args=[self])
+        t2=threading.Thread(target=setSqsConn,args=[self])
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
 
     #-------------------------------------------------------------------
     def emptyline(self):
