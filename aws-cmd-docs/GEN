@@ -1,0 +1,1 @@
+for i in `aws help |grep '\+.o'|sed 's/^.*o //'|egrep -v '^(json|text|table|on|off|auto|aws help topics)$'`;do echo $i;aws $i help |grep '\+.o'|sed 's/^.*o //' >aws.$i.cmds;done
