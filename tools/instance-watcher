@@ -26,7 +26,7 @@ _el='\033[K'     # erase to end of line
 def doit(conn,profile):
     """show status with nice looking update"""
 
-    P0('ec2 (%s) %s %s                           build<4>\n'%\
+    P0('ec2 (%s) %s %s                           build<5>\n'%\
                                            (profile,time.ctime(),_el))
     reservations=conn.get_all_reservations()
     # name | id | type | zone | state | status-checks | alarm-status

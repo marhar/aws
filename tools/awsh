@@ -16,7 +16,7 @@ class AwshCmd(cmd.Cmd):
     """--------------------------------------------------\n"""\
     """| Welcome to awsh, the AWS shell                 |\n"""\
     """| docs: https://github.com/marhar/aws            |\n"""\
-    """| type "help" for help                  build<4> |\n"""\
+    """| type "help" for help                  build<5> |\n"""\
     """--------------------------------------------------\n"""
 
     #===================================================================
@@ -575,6 +575,14 @@ def main():
     else:
         profile=os.environ.get('AWS_DEFAULT_PROFILE','default')
     AWSDIR=os.environ['HOME']+'/.aws'
+
+    if profile == '-':
+        config=awshelpers.readconfig('config')
+        credentials=awshelpers.readconfig('credentials')
+        P('profiles:')
+        for p in sorted(credentials.keys()):
+            P('    %s'%p)
+        sys.exit(0)
 
     historyFile=AWSDIR+'/%s.history'%profile
     open(historyFile,'a').close()
