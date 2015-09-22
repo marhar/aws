@@ -1,0 +1,7 @@
+#!/bin/sh
+H=$1
+curl "http://$H/cgi-bin/mathserver?op=add&x=4&y=5" &
+curl "http://$H/cgi-bin/mathserver?op=sub&x=4&y=5" &
+curl "http://$H/cgi-bin/mathserver?op=mul&x=4&y=5" &
+curl "http://$H/cgi-bin/mathserver?op=div&x=4&y=5" &
+wait
