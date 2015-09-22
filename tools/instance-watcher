@@ -116,7 +116,7 @@ def main():
         while True:
             P0(_ho)
             doit(conn,profile)
-            doodle(3)
+            doodle(2)
 
 #-----------------------------------------------------------------------
 if __name__ == "__main__":

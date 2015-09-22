@@ -353,6 +353,20 @@ class AwshCmd(cmd.Cmd):
         P("make sure you're logged in to "+self.profile)
         os.system('open https://aws.amazon.com/console')
 
+    #-----------------------------------------------------------------------
+    def do_queues(self,s):
+        """sqs: list queues"""
+
+        dat=[]
+        headers='name url'.split()
+        for q in self.sqsconn.get_all_queues():
+            dat.append(self._attrlist(q,headers))
+            dat[len(dat)-1].append(str(q.count()))
+            dat[len(dat)-1].append(str(q.count_slow()))
+        headers.append('count')
+        headers.append('count_slow')
+        awshelpers.tprintx(headers,dat)
+
     # IP >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     # rough edits below >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -460,18 +474,9 @@ class AwshCmd(cmd.Cmd):
         P('queue<%s>'%s)
 
     #-----------------------------------------------------------------------
-    def do_queues(self,s):
-        """sqs: list queues"""
-
-        dat=[]
-        headers='name url'.split()
-        for q in self.sqsconn.get_all_queues():
-            dat.append(self._attrlist(q,headers))
-            dat[len(dat)-1].append(str(q.count()))
-            dat[len(dat)-1].append(str(q.count_slow()))
-        headers.append('count')
-        headers.append('count_slow')
-        awshelpers.tprintx(headers,dat)
+    def FUTURE_do_wait(self,s):
+        """devops: wait for instance(s) to be in running/stopped states"""
+        P('COMING')
 
     #-----------------------------------------------------------------------
     def FUTURE_do_iam(self,s):
