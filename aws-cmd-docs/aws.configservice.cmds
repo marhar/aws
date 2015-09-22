@@ -1,0 +1,14 @@
+delete-delivery-channel
+deliver-config-snapshot
+describe-configuration-recorder-status
+describe-configuration-recorders
+describe-delivery-channel-status
+describe-delivery-channels
+get-resource-config-history
+get-status
+help
+put-configuration-recorder
+put-delivery-channel
+start-configuration-recorder
+stop-configuration-recorder
+subscribe

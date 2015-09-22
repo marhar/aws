@@ -1,0 +1,15 @@
+add-tags-to-stream
+create-stream
+delete-stream
+describe-stream
+get-records
+get-shard-iterator
+help
+list-streams
+list-tags-for-stream
+merge-shards
+put-record
+put-records
+remove-tags-from-stream
+split-shard
+wait

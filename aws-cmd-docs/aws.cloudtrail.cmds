@@ -1,0 +1,11 @@
+create-subscription
+create-trail
+delete-trail
+describe-trails
+get-trail-status
+help
+lookup-events
+start-logging
+stop-logging
+update-subscription
+update-trail

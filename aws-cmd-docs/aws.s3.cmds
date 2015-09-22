@@ -1,0 +1,19 @@
+ccpp
+mmvv
+rrmm
+ssyynncc
+mmbb
+rrbb
+llss
+**: Matches everything
+??: Matches any single character
+[[sseeqquueennccee]]: Matches any character in sseeqquueennccee
+[[!!sseeqquueennccee]]: Matches any charater not in sseeqquueennccee
+cp
+ls
+mb
+mv
+rb
+rm
+sync
+website

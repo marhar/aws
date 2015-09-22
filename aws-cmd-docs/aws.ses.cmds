@@ -1,0 +1,17 @@
+delete-identity
+get-identity-dkim-attributes
+get-identity-notification-attributes
+get-identity-verification-attributes
+get-send-quota
+get-send-statistics
+help
+list-identities
+send-email
+send-raw-email
+set-identity-dkim-enabled
+set-identity-feedback-forwarding-enabled
+set-identity-notification-topic
+verify-domain-dkim
+verify-domain-identity
+verify-email-identity
+wait

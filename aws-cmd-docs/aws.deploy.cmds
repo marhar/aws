@@ -1,0 +1,44 @@
+Applications  are  unique  identifiers  that  AWS  CodeDeploy uses to
+Deployment configurations are sets of deployment rules and deployment
+which application  revi-
+which  application  revi-
+Deployments   represent   the   process  of  deploying  revisions  to
+Application  revisions are archive files that are stored in Amazon S3
+add-tags-to-on-premises-instances
+batch-get-applications
+batch-get-deployments
+batch-get-on-premises-instances
+create-application
+create-deployment
+create-deployment-config
+create-deployment-group
+delete-application
+delete-deployment-config
+delete-deployment-group
+deregister
+deregister-on-premises-instance
+get-application
+get-application-revision
+get-deployment
+get-deployment-config
+get-deployment-group
+get-deployment-instance
+get-on-premises-instance
+help
+install
+list-application-revisions
+list-applications
+list-deployment-configs
+list-deployment-groups
+list-deployment-instances
+list-deployments
+list-on-premises-instances
+push
+register
+register-application-revision
+register-on-premises-instance
+remove-tags-from-on-premises-instances
+stop-deployment
+uninstall
+update-application
+update-deployment-group

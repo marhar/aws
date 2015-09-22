@@ -1,0 +1,11 @@
+batch-delete-attributes
+batch-put-attributes
+create-domain
+delete-attributes
+delete-domain
+domain-metadata
+get-attributes
+help
+list-domains
+put-attributes
+select

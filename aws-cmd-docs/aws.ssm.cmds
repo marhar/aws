@@ -1,0 +1,16 @@
+Install, repair, or uninstall software using an MSI package
+Run PowerShell scripts
+Join an AWS Directory
+monitor applications and systems
+create-association
+create-association-batch
+create-document
+delete-association
+delete-document
+describe-association
+describe-document
+get-document
+help
+list-associations
+list-documents
+update-association-status

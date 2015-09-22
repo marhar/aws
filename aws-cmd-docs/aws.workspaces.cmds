@@ -1,0 +1,8 @@
+create-workspaces
+describe-workspace-bundles
+describe-workspace-directories
+describe-workspaces
+help
+reboot-workspaces
+rebuild-workspaces
+terminate-workspaces

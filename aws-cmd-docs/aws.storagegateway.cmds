@@ -1,0 +1,55 @@
+_A_W_S _S_t_o_r_a_g_e _G_a_t_e_w_a_y _R_e_q_u_i_r_e_d _R_e_q_u_e_s_t _H_e_a_d_e_r_s : Describes the required
+_S_i_g_n_i_n_g _R_e_q_u_e_s_t_s : AWS Storage Gateway requires that you authenticate
+_E_r_r_o_r  _R_e_s_p_o_n_s_e_s  :  Provides reference information about AWS Storage
+_O_p_e_r_a_t_i_o_n_s _i_n _A_W_S _S_t_o_r_a_g_e _G_a_t_e_w_a_y : Contains detailed descriptions of
+_A_W_S  _S_t_o_r_a_g_e  _G_a_t_e_w_a_y _R_e_g_i_o_n_s _a_n_d _E_n_d_p_o_i_n_t_s : Provides a list of each
+activate-gateway
+add-cache
+add-upload-buffer
+add-working-storage
+cancel-archival
+cancel-retrieval
+create-cached-iscsi-volume
+create-snapshot
+create-snapshot-from-volume-recovery-point
+create-stored-iscsi-volume
+create-tapes
+delete-bandwidth-rate-limit
+delete-chap-credentials
+delete-gateway
+delete-snapshot-schedule
+delete-tape
+delete-tape-archive
+delete-volume
+describe-bandwidth-rate-limit
+describe-cache
+describe-cached-iscsi-volumes
+describe-chap-credentials
+describe-gateway-information
+describe-maintenance-start-time
+describe-snapshot-schedule
+describe-stored-iscsi-volumes
+describe-tape-archives
+describe-tape-recovery-points
+describe-tapes
+describe-upload-buffer
+describe-vtl-devices
+describe-working-storage
+disable-gateway
+help
+list-gateways
+list-local-disks
+list-volume-recovery-points
+list-volumes
+reset-cache
+retrieve-tape-archive
+retrieve-tape-recovery-point
+shutdown-gateway
+start-gateway
+update-bandwidth-rate-limit
+update-chap-credentials
+update-gateway-information
+update-gateway-software-now
+update-maintenance-start-time
+update-snapshot-schedule
+update-vtl-device-type

@@ -1,0 +1,28 @@
+_c_r_e_a_t_e_-_t_a_b_l_e  -  Creates  a  table  with  user-specified  provisioned
+_d_e_s_c_r_i_b_e_-_t_a_b_l_e - Returns metadata for a table, such  as  table  size,
+_u_p_d_a_t_e_-_t_a_b_l_e - Modifies the provisioned throughput settings for a ta-
+_l_i_s_t_-_t_a_b_l_e_s  -  Returns a list of all tables associated with the cur-
+_d_e_l_e_t_e_-_t_a_b_l_e - Deletes a table and all of its indexes.
+_g_e_t_-_i_t_e_m  - Returns a set of attributes for the item that has a given
+_b_a_t_c_h_-_g_e_t_-_i_t_e_m - Performs multiple _g_e_t_-_i_t_e_m requests for  data  items
+_q_u_e_r_y - Returns one or more items from a table or a secondary  index.
+_s_c_a_n - Reads every item in a table; the result set is eventually con-
+_p_u_t_-_i_t_e_m - Creates a new item, or replaces an existing  item  with  a
+_u_p_d_a_t_e_-_i_t_e_m - Modifies the attributes of an existing  item.  You  can
+_d_e_l_e_t_e_-_i_t_e_m - Deletes an item in a table by primary key. You can  use
+_b_a_t_c_h_-_w_r_i_t_e_-_i_t_e_m  -  Performs  multiple  _p_u_t_-_i_t_e_m   and   _d_e_l_e_t_e_-_i_t_e_m
+batch-get-item
+batch-write-item
+create-table
+delete-item
+delete-table
+describe-table
+get-item
+help
+list-tables
+put-item
+query
+scan
+update-item
+update-table
+wait

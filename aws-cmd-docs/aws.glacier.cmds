@@ -1,0 +1,27 @@
+_W_h_a_t  _i_s  _A_m_a_z_o_n  _G_l_a_c_i_e_r  -  This  section  of  the  Developer Guide
+_G_e_t_t_i_n_g  _S_t_a_r_t_e_d  _w_i_t_h  _A_m_a_z_o_n  _G_l_a_c_i_e_r - The Getting Started section
+abort-multipart-upload
+complete-multipart-upload
+create-vault
+delete-archive
+delete-vault
+delete-vault-access-policy
+delete-vault-notifications
+describe-job
+describe-vault
+get-data-retrieval-policy
+get-job-output
+get-vault-access-policy
+get-vault-notifications
+help
+initiate-job
+initiate-multipart-upload
+list-jobs
+list-multipart-uploads
+list-parts
+list-vaults
+set-data-retrieval-policy
+set-vault-access-policy
+set-vault-notifications
+upload-archive
+upload-multipart-part

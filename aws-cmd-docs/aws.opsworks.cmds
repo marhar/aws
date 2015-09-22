@@ -1,0 +1,75 @@
+_A_W_S _C_L_I
+_A_W_S _S_D_K _f_o_r _J_a_v_a
+_A_W_S _S_D_K _f_o_r _._N_E_T
+_A_W_S _S_D_K _f_o_r _P_H_P _2
+_A_W_S _S_D_K _f_o_r _R_u_b_y
+_A_W_S _S_D_K _f_o_r _N_o_d_e_._j_s
+_A_W_S _S_D_K _f_o_r _P_y_t_h_o_n_(_B_o_t_o_)
+assign-instance
+assign-volume
+associate-elastic-ip
+attach-elastic-load-balancer
+clone-stack
+create-app
+create-deployment
+create-instance
+create-layer
+create-stack
+create-user-profile
+delete-app
+delete-instance
+delete-layer
+delete-stack
+delete-user-profile
+deregister-elastic-ip
+deregister-instance
+deregister-rds-db-instance
+deregister-volume
+describe-apps
+describe-commands
+describe-deployments
+describe-elastic-ips
+describe-elastic-load-balancers
+describe-instances
+describe-layers
+describe-load-based-auto-scaling
+describe-my-user-profile
+describe-permissions
+describe-raid-arrays
+describe-rds-db-instances
+describe-service-errors
+describe-stack-provisioning-parameters
+describe-stack-summary
+describe-stacks
+describe-time-based-auto-scaling
+describe-user-profiles
+describe-volumes
+detach-elastic-load-balancer
+disassociate-elastic-ip
+get-hostname-suggestion
+grant-access
+help
+reboot-instance
+register
+register-elastic-ip
+register-instance
+register-rds-db-instance
+register-volume
+set-load-based-auto-scaling
+set-permission
+set-time-based-auto-scaling
+start-instance
+start-stack
+stop-instance
+stop-stack
+unassign-instance
+unassign-volume
+update-app
+update-elastic-ip
+update-instance
+update-layer
+update-my-user-profile
+update-rds-db-instance
+update-stack
+update-user-profile
+update-volume

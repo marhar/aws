@@ -1,0 +1,24 @@
+_A_c_t_i_o_n_s : An alphabetical list of all AWS Direct Connect actions.
+_D_a_t_a _T_y_p_e_s : An alphabetical list of  all  AWS  Direct  Connect  data
+_C_o_m_m_o_n  _Q_u_e_r_y _P_a_r_a_m_e_t_e_r_s : Parameters that all Query actions can use.
+_C_o_m_m_o_n _E_r_r_o_r_s : Client and server errors that all actions can return.
+allocate-connection-on-interconnect
+allocate-private-virtual-interface
+allocate-public-virtual-interface
+confirm-connection
+confirm-private-virtual-interface
+confirm-public-virtual-interface
+create-connection
+create-interconnect
+create-private-virtual-interface
+create-public-virtual-interface
+delete-connection
+delete-interconnect
+delete-virtual-interface
+describe-connections
+describe-connections-on-interconnect
+describe-interconnects
+describe-locations
+describe-virtual-gateways
+describe-virtual-interfaces
+help

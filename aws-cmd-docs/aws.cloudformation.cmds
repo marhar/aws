@@ -1,0 +1,17 @@
+cancel-update-stack
+create-stack
+delete-stack
+describe-stack-events
+describe-stack-resource
+describe-stack-resources
+describe-stacks
+get-stack-policy
+get-template
+get-template-summary
+help
+list-stack-resources
+list-stacks
+set-stack-policy
+signal-resource
+update-stack
+validate-template

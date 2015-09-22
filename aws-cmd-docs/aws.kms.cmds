@@ -1,0 +1,34 @@
+_A_W_S _S_e_c_u_r_i_t_y _C_r_e_d_e_n_t_i_a_l_s . This topic  provides  general  information
+create and
+_S_i_g_n_i_n_g _A_W_S _A_P_I _R_e_q_u_e_s_t_s . This set of topics walks you  through  the
+encrypt
+decrypt
+generate-data-key
+generate-data-key-without-plaintext
+create-alias
+create-grant
+create-key
+decrypt
+delete-alias
+describe-key
+disable-key
+disable-key-rotation
+enable-key
+enable-key-rotation
+encrypt
+generate-data-key
+generate-data-key-without-plaintext
+generate-random
+get-key-policy
+get-key-rotation-status
+help
+list-aliases
+list-grants
+list-key-policies
+list-keys
+put-key-policy
+re-encrypt
+retire-grant
+revoke-grant
+update-alias
+update-key-description

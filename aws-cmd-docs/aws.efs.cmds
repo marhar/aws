@@ -1,0 +1,12 @@
+create-file-system
+create-mount-target
+create-tags
+delete-file-system
+delete-mount-target
+delete-tags
+describe-file-systems
+describe-mount-target-security-groups
+describe-mount-targets
+describe-tags
+help
+modify-mount-target-security-groups

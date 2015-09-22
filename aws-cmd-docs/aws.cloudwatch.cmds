@@ -1,0 +1,27 @@
+_A_c_t_i_o_n_s : An alphabetical list of all Amazon CloudWatch actions.
+_D_a_t_a _T_y_p_e_s : An alphabetical  list  of  all  Amazon  CloudWatch  data
+_C_o_m_m_o_n _P_a_r_a_m_e_t_e_r_s : Parameters that all Query actions can use.
+_C_o_m_m_o_n _E_r_r_o_r_s : Client and server errors that all actions can return.
+_R_e_g_i_o_n_s _a_n_d _E_n_d_p_o_i_n_t_s : Itemized regions and endpoints  for  all  AWS
+_W_S_D_L                            _L_o_c_a_t_i_o_n                            :
+_A_W_S _S_D_K _f_o_r _J_a_v_a _D_o_c_u_m_e_n_t_a_t_i_o_n
+_A_W_S _S_D_K _f_o_r _._N_E_T _D_o_c_u_m_e_n_t_a_t_i_o_n
+_A_W_S _S_D_K _f_o_r _P_H_P _D_o_c_u_m_e_n_t_a_t_i_o_n
+_A_W_S _S_D_K _f_o_r _R_u_b_y _D_o_c_u_m_e_n_t_a_t_i_o_n
+_A_W_S _J_a_v_a _D_e_v_e_l_o_p_e_r _C_e_n_t_e_r
+_A_W_S _P_H_P _D_e_v_e_l_o_p_e_r _C_e_n_t_e_r
+_A_W_S _P_y_t_h_o_n _D_e_v_e_l_o_p_e_r _C_e_n_t_e_r
+_A_W_S _R_u_b_y _D_e_v_e_l_o_p_e_r _C_e_n_t_e_r
+_A_W_S _W_i_n_d_o_w_s _a_n_d _._N_E_T _D_e_v_e_l_o_p_e_r _C_e_n_t_e_r
+delete-alarms
+describe-alarm-history
+describe-alarms
+describe-alarms-for-metric
+disable-alarm-actions
+enable-alarm-actions
+get-metric-statistics
+help
+list-metrics
+put-metric-alarm
+put-metric-data
+set-alarm-state

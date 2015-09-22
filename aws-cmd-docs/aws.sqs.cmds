@@ -1,0 +1,27 @@
+_C_u_r_r_e_n_t _W_S_D_L _(_2_0_1_2_-_1_1_-_0_5_)
+_M_a_k_i_n_g _A_P_I _R_e_q_u_e_s_t_s
+_A_m_a_z_o_n _S_Q_S _p_r_o_d_u_c_t _p_a_g_e
+_U_s_i_n_g _A_m_a_z_o_n _S_Q_S _M_e_s_s_a_g_e _A_t_t_r_i_b_u_t_e_s
+_U_s_i_n_g _A_m_a_z_o_n _S_Q_S _D_e_a_d _L_e_t_t_e_r _Q_u_e_u_e_s
+_R_e_g_i_o_n_s _a_n_d _E_n_d_p_o_i_n_t_s
+Cryptographically signing your service requests
+Retrying requests
+Handling error responses
+add-permission
+change-message-visibility
+change-message-visibility-batch
+create-queue
+delete-message
+delete-message-batch
+delete-queue
+get-queue-attributes
+get-queue-url
+help
+list-dead-letter-source-queues
+list-queues
+purge-queue
+receive-message
+remove-permission
+send-message
+send-message-batch
+set-queue-attributes
