@@ -4,11 +4,18 @@ math stats reader
 """
 
 import boto.sqs
-sqsconn=boto.sqs.connect_to_region('us-west-2')
-q=sqsconn.get_queue('mathq')
 
-while True:
-    rs=q.get_messages(10,wait_time_seconds=20)
-    for m in rs:
-        print m.get_body()
-        sqsconn.delete_message(q,m)
+def main():
+    sqsconn=boto.sqs.connect_to_region('us-west-2')
+    q=sqsconn.get_queue('mathq')
+
+    while True:
+        rs=q.get_messages(10,wait_time_seconds=20)
+        for m in rs:
+            print m.get_body()
+            sqsconn.delete_message(q,m)
+
+try:
+    main()
+except KeyboardException:
+    pass
