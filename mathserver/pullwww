@@ -1,0 +1,3 @@
+#!/bin/sh
+
+echo xxxxxxxx aws s3 sync s3://mhmath-www /var/www
