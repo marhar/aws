@@ -1,0 +1,12 @@
+#!/bin/sh
+
+PROFILE=mhmathadm
+BUCKET=$PROFILE-www
+
+if test $1. = sync.; then
+    aws --profile=$PROFILE s3 sync www s3://$BUCKET
+elif test $1. = ls.; then
+    aws --profile=$PROFILE s3 ls s3://$BUCKET --recursive
+else
+    echo usage: $0 sync,ls
+fi
