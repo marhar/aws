@@ -1,6 +1,10 @@
 #!/usr/bin/env python
+"""
+pullwww - pull sync the www bucket
+* * * * *  /var/www/utils/pullwww mhmathadm-www /var/www >>/var/www/utils/pullwww.log 2>&1
+"""
 
-import sys,os,os.path,hashlib,json,socket
+import sys,os,os.path,hashlib,json,socket,time
 import boto.s3,boto.s3.connection
 import boto.sqs
 
@@ -14,13 +18,11 @@ def md5(s):
 #-----------------------------------------------------------------------
 def dodirs(dstdir,keys):
     """process dirs"""
-    print 'dirs:'
     dirs={}
     for k in keys:
         dirname=os.path.join(dstdir,os.path.dirname(k.name))
         dirs[dirname]=1
     for d in sorted(dirs.keys()):
-        print '   ',d
         try:
             os.makedirs(d)
             ###os.chmod(0755,d)
@@ -32,7 +34,6 @@ def dodirs(dstdir,keys):
 def dofiles(dstdir,keys):
     """process files"""
 
-    print 'files:'
     changed=[]
     for k in keys:
         fpath=os.path.join(dstdir,k.name)
@@ -49,17 +50,14 @@ def dofiles(dstdir,keys):
             k.get_file(fd)
             fd.close()
             changed.append(k.name)
-    print '   ',changed
+    print 'synced:',changed
 
     if len(changed) > 0:
         _sqs=boto.sqs.connect_to_region('us-west-2')
         q=_sqs.get_queue('mathq')
-
-        print q
         msg=boto.sqs.message.RawMessage()
-        msg.set_body(json.dumps(['pulled',socket.gethostname(),changed]))
+        msg.set_body(json.dumps(['pulled',time.strftime('%Y/%m/%d %T'),socket.gethostname(),changed]))
         status=q.write(msg)
-        print status
 
 #-----------------------------------------------------------------------
 def main():
@@ -71,8 +69,14 @@ def main():
     bucket=_s3.get_bucket(bucket)
     keys=bucket.list()
 
-    dodirs(dstdir,keys)
-    dofiles(dstdir,keys)
+    print 'top',time.time()
+    hence=time.time()+50
+    while time.time() < hence:
+        print 'loop',time.time()
+        sys.stdout.flush()
+        dodirs(dstdir,keys)
+        dofiles(dstdir,keys)
+        time.sleep(5)
 
 try:
     main()
