@@ -1,8 +1,0 @@
-#!/usr/bin/python
-"""is cgi-bin working?"""
-
-print """Content-Type: text/html
-
-<title>cgi test</title>
-<h1>cgi test</h1>
-cgi-bin is working"""
