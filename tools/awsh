@@ -236,7 +236,7 @@ class AwshCmd(cmd.Cmd):
         return sb
 
     #-----------------------------------------------------------------------
-    def do_ssh(self,s):
+    def do_ssh0(self,s):
         """devops: show ssh commands for running nodes"""
         for r in self.conn.get_all_reservations():
             for i0 in r.instances:
@@ -251,6 +251,44 @@ class AwshCmd(cmd.Cmd):
                                                     (sb.st_mode,pemfile))
                     P('ssh -i %s ec2-user@%s'% \
                       (pemfile,addr))
+
+    #-----------------------------------------------------------------------
+    def do_ssh(self,s):
+        """devops: open ssh sessions in tabs"""
+
+        tpl0='tell application "iterm"\n'+\
+             '   set myterm to (make new terminal)\n'
+        tpl1='  tell myterm\n'+\
+             '          launch session "Default session"\n'+\
+             '          tell the last session\n'+\
+             '                  set name to "%s"\n'+\
+             '                  write text "%s"\n'+\
+             '          end tell\n'+\
+             '  end tell\n'
+        tpl2='end tell\n'
+
+        cmd=tpl0
+
+        for r in self.conn.get_all_reservations():
+            for i0 in r.instances:
+                if i0.state in ['running','pending']:
+                    addr=str(i0.ip_address)
+                    name=i0.tags.get('Name','notSet')
+                    pemfile='%s/.aws/%s'%(os.environ['HOME'],self.pemfile)
+                    sb=self._muststat(pemfile)
+                    if sb is None:
+                        P('no pemfile: '+pemfile)
+                    elif (sb.st_mode & 0777) != 0400:
+                        P('pemfile perms must be 0400, not %o: %s'%\
+                                                    (sb.st_mode,pemfile))
+                    P('echo %s;ssh -i %s ec2-user@%s'% \
+                      (name,pemfile,addr))
+                    cmd+=tpl1%(name,'clear;exec ssh -i %s ec2-user@%s'%(pemfile,addr))
+        cmd+=tpl2
+        osa=os.popen('osascript','w')
+        osa.write(cmd)
+        osa.flush()
+        osa.close()
 
     #-----------------------------------------------------------------------
     def do_curltest(self,s):
