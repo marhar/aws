@@ -10,6 +10,9 @@ and deployment.
 - command line service startup, no logging in to box
 
 
+<img src="https://docs.google.com/drawings/d/1O7goBUE2SxuNdjvpPBX0rWKx4nMx3fAYAHS-Ga-FH4M/pub?w=949&h=185">
+
+
 Service Description
 -------------------
 
