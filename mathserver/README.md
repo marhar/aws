@@ -1,17 +1,14 @@
-AWS Math Service
-================
+AWS Toy Math Service
+====================
 
-A simple web service demonstrating several features of AWS development
-and deployment.
+A toy web service demonstrating several AWS features.
 
-- web service that does simple arithmetic
-- request logging via SQS
+- web service that does dumb arithmetic
 - site pages in git, deployed via S3
 - command line service startup, no logging in to box
-
+- request logging via SQS (intended as SQS demo)
 
 <img src="https://docs.google.com/drawings/d/1O7goBUE2SxuNdjvpPBX0rWKx4nMx3fAYAHS-Ga-FH4M/pub?w=949&h=185">
-
 
 Service Description
 -------------------
@@ -26,17 +23,18 @@ App Server
 
 Admin Box
 
-- collects and prints usage stats via SQS
+- receives and prints usage, update messages via SQS
 
 Testing
 
 - generate traffic, sends to load balanced service
 
-DevOp Requirements
+Operational Requirements
 
 - all boxes started automatically
 - when boxes start up, service starts
-- can deploy new code to running boxes
+- can deploy new code to running boxes via git/S3
+- using apache/cgi-bin, since learning emphasis is on AWS
 
 Deployment
 
@@ -48,8 +46,8 @@ Deployment
 
 Service Configuration
 
-- V1 is a simple service, with a single box server.
-- V2 puts the service behind a load balancer.  multiple app servers
+- V1 simple service, with a single box server.
+- V2 puts the service behind a load balancer.
 
 Profile Information
 
@@ -59,7 +57,6 @@ Profile Information
 - Instances: www1, www2, adm
 - bucket: mhmathadm-www
 - queue: mhmath
-
 
 V1 Configuration
 ----------------
@@ -120,7 +117,6 @@ Document Management
 - this copies modified files onto an s3 bucket
 - system nodes refresh themselves from this bucket automatically
 - on sync, nodes send a logging messages
-
 
 Tests
 -----
