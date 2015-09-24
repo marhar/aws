@@ -10,7 +10,7 @@ instance-watcher -- watch aws instances
 #TODO: clean up code structure since now it's a pure ansi terminal thing
 
 import os,sys,time
-import boto.ec2
+import boto.ec2,boto.ec2.elb
 import awshelpers
 from pprint import pprint
 from awshelpers import P,P0,tprint,tprintx
@@ -23,7 +23,7 @@ _ed='\033[J'     # erase to end of display
 _el='\033[K'     # erase to end of line
 
 #-----------------------------------------------------------------------
-def doit(conn,profile):
+def doit(conn,_elb,profile):
     """show status with nice looking update"""
 
     P0('ec2 (%s) %s %s                           build<6>\n'%\
@@ -43,6 +43,13 @@ def doit(conn,profile):
             dat.append(x)
     headers.insert(1,'Name')
     tprintx(headers,dat)
+    P(_el)
+    for lb in _elb.get_all_load_balancers():
+        P('%s%s'%(lb.name,_el))
+        P('    %s%s'%(lb.dns_name,_el))
+        for i in _elb.describe_instance_health(lb.name):
+            P('        %s : %s (%s)%s'%(i.instance_id,i.state,i.reason_code,_el))
+
     P0(_ed)
 
 #-----------------------------------------------------------------------
@@ -92,7 +99,13 @@ def main():
                                 credentials[pp]['aws_access_key_id'],
                                 aws_secret_access_key=
                                 credentials[pp]['aws_secret_access_key'])
-                doit(conn,pp)
+
+                _elb = boto.ec2.elb.connect_to_region(cfg[pp2]['region'],
+                                aws_access_key_id=
+                                credentials[pp]['aws_access_key_id'],
+                                aws_secret_access_key=
+                                credentials[pp]['aws_secret_access_key'])
+                doit(conn,_elb,pp)
                 P(_el)
             doodle(len(allprofiles)*5)
 
@@ -113,9 +126,13 @@ def main():
                   aws_access_key_id=accesskey,
                   aws_secret_access_key=secretkey)
 
+        _elb = boto.ec2.elb.connect_to_region(region,
+                  aws_access_key_id=accesskey,
+                  aws_secret_access_key=secretkey)
+
         while True:
             P0(_ho)
-            doit(conn,profile)
+            doit(conn,_elb,profile)
             doodle(2)
 
 #-----------------------------------------------------------------------

@@ -9,6 +9,7 @@ awsh -- aws shell
 import os,sys,readline,cmd,atexit,ConfigParser,traceback,subprocess
 import fnmatch,pprint,urllib2,stat,glob,types,collections,threading
 import boto.ec2,boto.sqs,boto,boto.iam,boto.glacier,boto.sns,boto.ses
+import boto.ec2.elb
 import awshelpers
 from awshelpers import P,P0,D,D0,T
 
@@ -77,9 +78,9 @@ class AwshCmd(cmd.Cmd):
         t1.join()
         t2.join()
 
-        # create connections to several services
+        # create connections to several services, named _foo
         tlist=[]
-        pkglist=[boto.ec2,boto.sqs,boto.iam,boto.glacier,boto.ses,boto.sns]
+        pkglist=[boto.ec2,boto.sqs,boto.iam,boto.ec2.elb]
         for pkg in pkglist:
             tlist.append(threading.Thread(target=self._setConn,args=[pkg]))
         for t in tlist: t.start()
@@ -291,13 +292,14 @@ class AwshCmd(cmd.Cmd):
         osa.close()
 
     #-----------------------------------------------------------------------
-    def do_curltest(self,s):
+    def do_curl(self,s):
         """devops: curl commands for testing running nodes"""
         for r in self.conn.get_all_reservations():
             for inst in r.instances:
                 if inst.state in ['running']:
                     P('curl http://%s'%(inst.ip_address))
-                    P('curl http://%s/cgi-bin/working'%(inst.ip_address))
+                    P("curl 'http://%s/cgi-bin/mathserver?op=add&x=4&y=5'"%\
+                                       (inst.ip_address))
 
     #-----------------------------------------------------------------------
     def do_div0(self,s):
@@ -543,6 +545,16 @@ class AwshCmd(cmd.Cmd):
         """sqs: queue commands"""
         P('note: command does nothing at this time')
         P('queue<%s>'%s)
+
+    #-----------------------------------------------------------------------
+    def do_loadbalancers(self,s):
+        """elb: list load balancers"""
+        for lb in self._elb.get_all_load_balancers():
+            P('%s'%lb.name)
+            P('    %s'%lb.dns_name)
+            for i in self._elb.describe_instance_health(lb.name):
+                P('        %s : %s (%s)'%(i.instance_id,i.state,i.reason_code))
+
 
     #-----------------------------------------------------------------------
     def FUTURE_do_wait(self,s):
