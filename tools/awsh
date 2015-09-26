@@ -10,6 +10,7 @@ import os,sys,readline,cmd,atexit,ConfigParser,traceback,subprocess
 import fnmatch,pprint,urllib2,stat,glob,types,collections,threading
 import boto.ec2,boto.sqs,boto,boto.iam,boto.glacier,boto.sns,boto.ses
 import boto.ec2.elb
+
 import awshelpers
 from awshelpers import P,P0,D,D0,T
 
@@ -17,15 +18,15 @@ from awshelpers import P,P0,D,D0,T
 def setEc2Conn(obj):
     """connect to ec2"""
     obj.conn = boto.ec2.connect_to_region(obj.region,
-                              aws_access_key_id=obj.accesskey,
-                              aws_secret_access_key=obj.secretkey)
+                              aws_access_key_id = obj.accesskey,
+                              aws_secret_access_key = obj.secretkey)
 
 #-----------------------------------------------------------------------
 def setSqsConn(obj):
     """connect to sqs"""
-    obj.sqsconn=boto.sqs.connect_to_region(obj.region,
-                              aws_access_key_id=obj.accesskey,
-                              aws_secret_access_key=obj.secretkey)
+    obj.sqsconn = boto.sqs.connect_to_region(obj.region,
+                              aws_access_key_id = obj.accesskey,
+                              aws_secret_access_key = obj.secretkey)
 
 #-----------------------------------------------------------------------
 class AwshCmd(cmd.Cmd):
@@ -45,20 +46,20 @@ class AwshCmd(cmd.Cmd):
         cmd.Cmd.__init__(self)
         readline.set_completer_delims(' ')
 
-        self.profile=profile
+        self.profile = profile
         self.pemfile = '%s.pem'%(self.profile)
-        self.iname={}  # map of names -> instance ids
+        self.iname = {}  # map of names -> instance ids
 
-        p2=profile
+        p2 = profile
         if profile != 'default':
             p2 = 'profile '+p2
 
         try:
-            config=awshelpers.readconfig('config')
+            config = awshelpers.readconfig('config')
             self.region = config[p2]['region']
             self.output = config[p2]['output']
 
-            credentials=awshelpers.readconfig('credentials')
+            credentials = awshelpers.readconfig('credentials')
             self.accesskey = credentials[self.profile]['aws_access_key_id']
             self.secretkey = credentials[self.profile]['aws_secret_access_key']
         except KeyError, e:
@@ -67,33 +68,33 @@ class AwshCmd(cmd.Cmd):
             P('    %s'%(e))
             sys.exit(1)
 
-        self.prompt='%s@%s> '%(self.profile,self.region)
+        self.prompt = '%s@%s> '%(self.profile,self.region)
 
         # connect via threads for fast startup
         #TODO: replace this with the following loop
-        t1=threading.Thread(target=setEc2Conn,args=[self])
-        t2=threading.Thread(target=setSqsConn,args=[self])
+        t1 = threading.Thread(target = setEc2Conn,args = [self])
+        t2 = threading.Thread(target = setSqsConn,args = [self])
         t1.start()
         t2.start()
         t1.join()
         t2.join()
 
         # create connections to several services, named _foo
-        tlist=[]
-        pkglist=[boto.ec2,boto.sqs,boto.iam,boto.ec2.elb]
+        tlist = []
+        pkglist = [boto.ec2,boto.sqs,boto.iam,boto.ec2.elb]
         for pkg in pkglist:
-            tlist.append(threading.Thread(target=self._setConn,args=[pkg]))
+            tlist.append(threading.Thread(target = self._setConn,args = [pkg]))
         for t in tlist: t.start()
         for t in tlist: t.join()
 
     #-----------------------------------------------------------------------
     def _setConn(self,pkg):
         """create a connection to AWS service foo named _foo"""
-        name=pkg.__name__.split('.')
-        name='_'+name[len(name)-1]
+        name = pkg.__name__.split('.')
+        name = '_'+name[len(name)-1]
         setattr(self,name,pkg.connect_to_region(self.region,
-                                  aws_access_key_id=self.accesskey,
-                                  aws_secret_access_key=self.secretkey))
+                                  aws_access_key_id = self.accesskey,
+                                  aws_secret_access_key = self.secretkey))
 
     #-------------------------------------------------------------------
     def emptyline(self):
@@ -115,28 +116,28 @@ class AwshCmd(cmd.Cmd):
     #-------------------------------------------------------------------
     def do_help(self,s):
         """awsh: print help information"""
-        s=s.strip(';')
+        s = s.strip(';')
         if s != '': # cmd-specific help
-            func='do_'+s
+            func = 'do_'+s
             if AwshCmd.__dict__.has_key(func):
-                hh=AwshCmd.__dict__[func].__doc__.split(':')
+                hh = AwshCmd.__dict__[func].__doc__.split(':')
                 P('    %s'%(':'.join(hh[1:])))
             else:
                 P('    no help for %s'%(s))
 
         else:  # generic parm-less help
-            funclist=[x[3:] for x,y in AwshCmd.__dict__.items()
+            funclist = [x[3:] for x,y in AwshCmd.__dict__.items()
                       if type(y) == types.FunctionType
                        and x.startswith('do_')]
-            mxlen=max([len(f) for f in funclist])
+            mxlen = max([len(f) for f in funclist])
 
-            helptext={}
-            categories=collections.defaultdict(list)
+            helptext = {}
+            categories = collections.defaultdict(list)
 
             for f in funclist:
-                hh=AwshCmd.__dict__['do_'+f].__doc__.split(':')
+                hh = AwshCmd.__dict__['do_'+f].__doc__.split(':')
                 categories[hh[0]].append(f)
-                helptext[f]=hh[1].strip()
+                helptext[f] = hh[1].strip()
 
             try:
                 del(categories['INTERNAL'])
@@ -175,11 +176,11 @@ class AwshCmd(cmd.Cmd):
         """ec2: display reservations"""
         # TODO: figure out any more useful info to display?
         # BUG: nuke i0, should be for instance in instances???
-        reservations=self.conn.get_all_reservations()
+        reservations = self.conn.get_all_reservations()
         for r in reservations:
             P('  '+str(r))
-            instances=r.instances
-            i0=instances[0]
+            instances = r.instances
+            i0 = instances[0]
             P('    '+i0.id)
             P('      '+i0.instance_type)
             P('      '+i0.placement)
@@ -187,8 +188,8 @@ class AwshCmd(cmd.Cmd):
     #-----------------------------------------------------------------------
     def do_myip(self,s):
         """devops: what's my ip address according to amazon?"""
-        fd=urllib2.urlopen("http://checkip.amazonaws.com")
-        ip=fd.read()
+        fd = urllib2.urlopen("http://checkip.amazonaws.com")
+        ip = fd.read()
         print(ip.strip())
 
     #-----------------------------------------------------------------------
@@ -201,8 +202,8 @@ class AwshCmd(cmd.Cmd):
     def do_instances(self,s):
         """ec2: print information about instances"""
 
-        dat=[]
-        headers='id ip_address instance_type placement state'.split()
+        dat = []
+        headers = 'id ip_address instance_type placement state'.split()
         #TODO: figure out better way of patching in Name
         for r in self.conn.get_all_reservations():
             for inst in r.instances:
@@ -211,17 +212,17 @@ class AwshCmd(cmd.Cmd):
                     dat[len(dat)-1].insert(1,inst.tags.get('Name','notSet'))
         headers.insert(1,'Name')
         awshelpers.tprintx(headers,dat)
-        i0=self.conn.get_all_reservations()[0].instances[0]
+        i0 = self.conn.get_all_reservations()[0].instances[0]
 
     #-----------------------------------------------------------------------
     def do_volumes(self,s):
         """ec2: print information about volumes"""
         # TODO: what else is useful? tags? snapshots? dir(v)
 
-        dat=[]
-        headers='id type zone iops size status'.split()
+        dat = []
+        headers = 'id type zone iops size status'.split()
         for v in self.conn.get_all_volumes():
-            row=[v.id,v.type,v.zone,v.iops, v.size, v.status]
+            row = [v.id,v.type,v.zone,v.iops, v.size, v.status]
             dat.append(row)
         awshelpers.tprintx(headers,dat)
 
@@ -229,11 +230,11 @@ class AwshCmd(cmd.Cmd):
     def _muststat(self,path):
         """stat, returns None if file not found"""
         try:
-            sb=os.stat(path)
+            sb = os.stat(path)
         except OSError,e:
             if e.args[0] != 2:  # "No such file or directory"
                 raise e
-            sb=None
+            sb = None
         return sb
 
     #-----------------------------------------------------------------------
@@ -242,9 +243,9 @@ class AwshCmd(cmd.Cmd):
         for r in self.conn.get_all_reservations():
             for i0 in r.instances:
                 if i0.state in ['running','pending']:
-                    addr=str(i0.ip_address)
-                    pemfile='%s/.aws/%s'%(os.environ['HOME'],self.pemfile)
-                    sb=self._muststat(pemfile)
+                    addr = str(i0.ip_address)
+                    pemfile = '%s/.aws/%s'%(os.environ['HOME'],self.pemfile)
+                    sb = self._muststat(pemfile)
                     if sb is None:
                         P('no pemfile: '+pemfile)
                     elif (sb.st_mode & 0777) != 0400:
@@ -257,26 +258,26 @@ class AwshCmd(cmd.Cmd):
     def do_ssh(self,s):
         """devops: open ssh sessions in tabs"""
 
-        tpl0='tell application "iterm"\n'+\
-             '   set myterm to (make new terminal)\n'
-        tpl1='  tell myterm\n'+\
-             '          launch session "Default session"\n'+\
-             '          tell the last session\n'+\
-             '                  set name to "%s"\n'+\
-             '                  write text "%s"\n'+\
-             '          end tell\n'+\
-             '  end tell\n'
-        tpl2='end tell\n'
+        tpl0 = 'tell application "iterm"\n'+\
+               '   set myterm to (make new terminal)\n'
+        tpl1 = '  tell myterm\n'+\
+               '          launch session "Default session"\n'+\
+               '          tell the last session\n'+\
+               '                  set name to "%s"\n'+\
+               '                  write text "%s"\n'+\
+               '          end tell\n'+\
+               '  end tell\n'
+        tpl2 = 'end tell\n'
 
-        cmd=tpl0
+        cmd = tpl0
 
         for r in self.conn.get_all_reservations():
             for i0 in r.instances:
                 if i0.state in ['running','pending']:
-                    addr=str(i0.ip_address)
-                    name=i0.tags.get('Name','notSet')
-                    pemfile='%s/.aws/%s'%(os.environ['HOME'],self.pemfile)
-                    sb=self._muststat(pemfile)
+                    addr = str(i0.ip_address)
+                    name = i0.tags.get('Name','notSet')
+                    pemfile = '%s/.aws/%s'%(os.environ['HOME'],self.pemfile)
+                    sb = self._muststat(pemfile)
                     if sb is None:
                         P('no pemfile: '+pemfile)
                     elif (sb.st_mode & 0777) != 0400:
@@ -284,9 +285,9 @@ class AwshCmd(cmd.Cmd):
                                                     (sb.st_mode,pemfile))
                     P('echo %s;ssh -i %s ec2-user@%s'% \
                       (name,pemfile,addr))
-                    cmd+=tpl1%(name,'clear;exec ssh -i %s ec2-user@%s'%(pemfile,addr))
+                    cmd += tpl1%(name,'clear;exec ssh -i %s ec2-user@%s'%(pemfile,addr))
         cmd+=tpl2
-        osa=os.popen('osascript','w')
+        osa = os.popen('osascript','w')
         osa.write(cmd)
         osa.flush()
         osa.close()
@@ -304,37 +305,37 @@ class AwshCmd(cmd.Cmd):
     #-----------------------------------------------------------------------
     def do_div0(self,s):
         """devel: divide by zero, test case for runtime error reporting"""
-        x=1/0
-        #TODO: add build number, auto report bug
+        x = 1/0
+        #TODO: for error reporting, add build number, auto report bug
 
     #-----------------------------------------------------------------------
     def _instancelist(self):
         """return a list of instances and statuses"""
 
-        rv=[]
-        self.iname={}
+        rv = []
+        self.iname = {}
         for resv in self.conn.get_all_reservations():
             for inst in resv.instances:
                 if inst.state != 'terminated':
-                    name=inst.tags.get('Name',None)
+                    name = inst.tags.get('Name',None)
                     rv.append([inst.id,inst.state])
                     if name is not None:
                         rv.append([name,inst.state])
                     else:
                         rv.append([inst.id+'-needsName',inst.state])
-                    self.iname[name]=inst.id
-                    self.iname[inst.id]=inst.id
+                    self.iname[name] = inst.id
+                    self.iname[inst.id] = inst.id
         return rv
 
     #-----------------------------------------------------------------------
     def _instance_complete(self, text, line, begidx, endidx, notstates):
         """instance-specific completer, state must be as specified"""
-        choices=[]
+        choices = []
         for x in self._instancelist():
             if x[1] not in notstates:
                 choices.append(x[0])
 
-        matches=[]
+        matches = []
         for x in choices:
             if x.startswith(text):
                 matches.append(x)
@@ -343,30 +344,30 @@ class AwshCmd(cmd.Cmd):
     #-----------------------------------------------------------------------
     def complete_start(self, text, line, begidx, endidx):
         """start completions: instances which are not running"""
-        notstates=['running','pending']
+        notstates = ['running','pending']
         return self._instance_complete(text,line,begidx,endidx,notstates)
 
     #-----------------------------------------------------------------------
     def complete_stop(self, text, line, begidx, endidx):
         """start completions: instances which are not running"""
-        notstates=['stopped','stopping']
+        notstates = ['stopped','stopping']
         return self._instance_complete(text,line,begidx,endidx,notstates)
 
     #-----------------------------------------------------------------------
     def do_start(self,s):
         """ec2: start one or more instances"""
 
-        a=s.split()
+        a = s.split()
         if len(a) == 0:
             P('    usage: start instancelist...')
             return
 
         self._instancelist()  # refresh self.inames
-        started_states=['pending','running','terminated']
+        started_states = ['pending','running','terminated']
         # b is list of instances match that match wc
-        b=[]
+        b = []
         for wc in a:
-            if wc.find('*')==-1 and wc.find('?')==-1:
+            if wc.find('*') == -1 and wc.find('?') == -1:
                 b.append(self.iname[wc])
             else:
                 for c in [i[0] for i in self._instancelist() \
@@ -379,7 +380,7 @@ class AwshCmd(cmd.Cmd):
             return
 
         try:
-            rv=self.conn.start_instances(instance_ids=b)
+            rv = self.conn.start_instances(instance_ids = b)
             for i in rv:
                 P('    starting: %s'%(i))
         except boto.exception.EC2ResponseError,e:
@@ -390,17 +391,17 @@ class AwshCmd(cmd.Cmd):
     def do_stop(self,s):
         """ec2: stop one or more instances"""
 
-        a=s.split()
+        a = s.split()
         if len(a) == 0:
             P('    usage: stop instancelist...')
             return
 
         self._instancelist()  # refresh self.inames
-        stopped_states=['stopping','stopped','terminated']
+        stopped_states = ['stopping','stopped','terminated']
         # b is list of instances match that match wc
-        b=[]
+        b = []
         for wc in a:
-            if wc.find('*')==-1 and wc.find('?')==-1:
+            if wc.find('*') == -1 and wc.find('?') == -1:
                 b.append(self.iname[wc])
             else:
                 for c in [i[0] for i in self._instancelist() \
@@ -413,7 +414,7 @@ class AwshCmd(cmd.Cmd):
             return
 
         try:
-            rv=self.conn.stop_instances(instance_ids=b)
+            rv = self.conn.stop_instances(instance_ids = b)
             for i in rv:
                 P('    stopping: %s'%(i))
         except boto.exception.EC2ResponseError,e:
@@ -430,8 +431,8 @@ class AwshCmd(cmd.Cmd):
     def do_queues(self,s):
         """sqs: list queues"""
 
-        dat=[]
-        headers='name url'.split()
+        dat = []
+        headers = 'name url'.split()
         for q in self.sqsconn.get_all_queues():
             dat.append(self._attrlist(q,headers))
             dat[len(dat)-1].append(str(q.count()))
@@ -447,10 +448,10 @@ class AwshCmd(cmd.Cmd):
     #-----------------------------------------------------------------------
     def do_launch(self,s):
         """ec2: launch an instance"""
-        x=self.conn.run_instances('ami-d7450be7',
-                                key_name='mhtest',
-                                instance_type='t2.micro',
-                                security_groups=['mhsecurity'])
+        x = self.conn.run_instances('ami-d7450be7',
+                                key_name = 'mhtest',
+                                instance_type = 't2.micro',
+                                security_groups = ['mhsecurity'])
         print x
 
         # make sure we can ssh into it.  this probably can be
@@ -458,19 +459,19 @@ class AwshCmd(cmd.Cmd):
         # session.  perhaps make a command so that if we move
         # laptop between networks we can rejigger
 
-        G='singlessh'
+        G = 'singlessh'
 
         #------------------------------------------------
         # create security group G if it does not exist
-        exists=False
+        exists = False
         for g in self.conn.get_all_security_groups():
             if g.name == G:
-                exists=True
+                exists = True
                 break
 
         if exists == False:
             P('creating security group: %s'%(G))
-            groups[G]=self.conn.create_security_group(G,'single location ssh')
+            groups[G] = self.conn.create_security_group(G,'single location ssh')
         else:
             P('modifying security group: %s'%(G))
 
@@ -479,24 +480,24 @@ class AwshCmd(cmd.Cmd):
         for r in g.rules:
             for cidr in r.grants:
                 P('revoking grant: %s'%(cidr))
-                g.revoke(r.ip_protocol,r.from_port,r.to_port,cidr_ip=cidr)
+                g.revoke(r.ip_protocol,r.from_port,r.to_port,cidr_ip = cidr)
 
         #------------------------------------------------
         # and add our IP address as the sole ingress host
-        mycidr=self.myip()+'/32'
+        mycidr = self.myip()+'/32'
         P('mycidr:%s:'%mycidr)
         P('authorizing: %s'%(mycidr))
-        g.authorize(ip_protocol='tcp', from_port=22, to_port=22, cidr_ip=mycidr)
+        g.authorize(ip_protocol = 'tcp', from_port = 22, to_port = 22, cidr_ip = mycidr)
 
     # brignt ideas >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     #-----------------------------------------------------------------------
     def complete_queue(self, text, line, begidx, endidx):
         """queue completions"""
-        pline=line[begidx:endidx]
-        a=line.split()
+        pline = line[begidx:endidx]
+        a = line.split()
 
-        subcmds=[
+        subcmds = [
             'add-permission', 'change-message-visibility',
             'create',
             'delete-message',
@@ -513,27 +514,27 @@ class AwshCmd(cmd.Cmd):
             return subcmds
         elif len(a) == 2 and a[1]==pline:
             #complete matching subcmds
-            matches=[x for x in subcmds if x.startswith(a[1])]
+            matches = [x for x in subcmds if x.startswith(a[1])]
             return matches
         elif len(a) == 2 and pline=='':
             # complete all queue names
-            matches=[]
-            self.q_name_to_url={}
-            self.q_url_to_name={}
+            matches = []
+            self.q_name_to_url = {}
+            self.q_url_to_name = {}
             for q in self.sqsconn.get_all_queues():
                 matches.append(q.name)
                 matches.append(q.url)
-                self.q_name_to_url[q.name]=q.url
-                self.q_url_to_name[q.url]=q.name
+                self.q_name_to_url[q.name] = q.url
+                self.q_url_to_name[q.url] = q.name
                 return matches
         else:
             # complete matching queue names
-            matches=[]
-            self.q_name_to_url={}
-            self.q_url_to_name={}
+            matches = []
+            self.q_name_to_url = {}
+            self.q_url_to_name = {}
             for q in self.sqsconn.get_all_queues():
-                self.q_name_to_url[q.name]=q.url
-                self.q_url_to_name[q.url]=q.name
+                self.q_name_to_url[q.name] = q.url
+                self.q_url_to_name[q.url] = q.name
                 if q.name.startswith(pline):
                     matches.append(q.name)
                 if q.url.startswith(pline):
@@ -621,17 +622,17 @@ class AwshCmd(cmd.Cmd):
         return
 
         # BUG: nuke i0, should be for instance in instances???
-        a=s.split()
+        a = s.split()
         if len(a) == 0:
             P('  usage: terminate --all | id-list')
         elif len(a) == 1 and a[0] == '--all':
-            reservations=self.conn.get_all_reservations()
-            idlist=[]
+            reservations = self.conn.get_all_reservations()
+            idlist = []
             for r in reservations:
-                instances=r.instances
-                i0=instances[0]
+                instances = r.instances
+                i0 = instances[0]
 
-                FORCE_TERMINATE=False
+                FORCE_TERMINATE = False
                 if FORCE_TERMINATE:
                     # even if it's already termed, term it again!
                     idlist.append(i0.id)
@@ -641,11 +642,11 @@ class AwshCmd(cmd.Cmd):
             if len(idlist) == 0:
                 P('  no reservations to terminate')
             else:
-                rr=self.conn.terminate_instances(instance_ids=idlist)
+                rr = self.conn.terminate_instances(instance_ids = idlist)
                 P('  '+str(rr))
         else:
             try:
-                rr=self.conn.terminate_instances(instance_ids=a)
+                rr = self.conn.terminate_instances(instance_ids = a)
                 P('  '+str(rr))
             except boto.exception.EC2ResponseError,e:
                 P('  '+e.message)
@@ -659,20 +660,20 @@ def main():
     P0(AwshCmd.__doc__)
 
     if len(sys.argv) >= 2:
-        profile=sys.argv[1]
+        profile = sys.argv[1]
     else:
-        profile=os.environ.get('AWS_DEFAULT_PROFILE','default')
-    AWSDIR=os.environ['HOME']+'/.aws'
+        profile = os.environ.get('AWS_DEFAULT_PROFILE','default')
+    AWSDIR = os.environ['HOME']+'/.aws'
 
     if profile == '-':
-        config=awshelpers.readconfig('config')
-        credentials=awshelpers.readconfig('credentials')
+        config = awshelpers.readconfig('config')
+        credentials = awshelpers.readconfig('credentials')
         P('profiles:')
         for p in sorted(credentials.keys()):
             P('    %s'%p)
         sys.exit(0)
 
-    historyFile=AWSDIR+'/%s.history'%profile
+    historyFile = AWSDIR+'/%s.history'%profile
     open(historyFile,'a').close()
 
     if os.path.exists(historyFile):
@@ -681,11 +682,11 @@ def main():
         if readline.__doc__.rfind('libedit') == -1:
             readline.read_history_file(historyFile)
 
-    def writeHistory(historyFile=historyFile):
+    def writeHistory(historyFile = historyFile):
         readline.write_history_file(historyFile)
     atexit.register(writeHistory)
 
-    cc=AwshCmd(profile)
+    cc = AwshCmd(profile)
     while True:
         try:
             cc.cmdloop()
