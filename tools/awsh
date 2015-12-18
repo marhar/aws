@@ -9,7 +9,7 @@ awsh -- aws shell
 import os,sys,readline,cmd,atexit,ConfigParser,traceback,subprocess
 import fnmatch,pprint,urllib2,stat,glob,types,collections,threading
 import boto.ec2,boto.sqs,boto,boto.iam,boto.glacier,boto.sns,boto.ses
-import boto.ec2.elb
+import boto.ec2.elb,boto.s3
 
 import awshelpers
 from awshelpers import P,P0,D,D0,T
@@ -25,6 +25,13 @@ def setEc2Conn(obj):
 def setSqsConn(obj):
     """connect to sqs"""
     obj.sqsconn = boto.sqs.connect_to_region(obj.region,
+                              aws_access_key_id = obj.accesskey,
+                              aws_secret_access_key = obj.secretkey)
+
+#-----------------------------------------------------------------------
+def setS3Conn(obj):
+    """connect to S3"""
+    obj.s3conn = boto.s3.connect_to_region(obj.region,
                               aws_access_key_id = obj.accesskey,
                               aws_secret_access_key = obj.secretkey)
 
@@ -71,21 +78,21 @@ class AwshCmd(cmd.Cmd):
         self.prompt = '%s@%s> '%(self.profile,self.region)
 
         # connect via threads for fast startup
-        #TODO: replace this with the following loop
-        t1 = threading.Thread(target = setEc2Conn,args = [self])
-        t2 = threading.Thread(target = setSqsConn,args = [self])
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
-
-        # create connections to several services, named _foo
         tlist = []
-        pkglist = [boto.ec2,boto.sqs,boto.iam,boto.ec2.elb]
-        for pkg in pkglist:
-            tlist.append(threading.Thread(target = self._setConn,args = [pkg]))
+        tlist.append(threading.Thread(target = setEc2Conn,args = [self]))
+        tlist.append(threading.Thread(target = setSqsConn,args = [self]))
+        tlist.append(threading.Thread(target = setS3Conn,args = [self]))
         for t in tlist: t.start()
         for t in tlist: t.join()
+
+        ## later see if we can do this:
+        ## create connections to several services, named _foo
+        #tlist = []
+        #pkglist = [boto.ec2,boto.sqs,boto.iam,boto.ec2.elb]
+        #for pkg in pkglist:
+        #    tlist.append(threading.Thread(target = self._setConn,args = [pkg]))
+        #for t in tlist: t.start()
+        #for t in tlist: t.join()
 
     #-----------------------------------------------------------------------
     def _setConn(self,pkg):
@@ -440,6 +447,12 @@ class AwshCmd(cmd.Cmd):
         headers.append('count')
         headers.append('count_slow')
         awshelpers.tprintx(headers,dat)
+
+    #-----------------------------------------------------------------------
+    def do_s3(self,s):
+        """s3: list s3 buckets"""
+        print self.s3conn
+
 
     # IP >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
