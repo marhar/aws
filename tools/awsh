@@ -72,6 +72,7 @@ class AwshCmd(cmd.Cmd):
         except KeyError, e:
             P('    error with profile: '+profile)
             P('    key access error reading configuration')
+            P('    fix in ~/.aws/config')
             P('    %s'%(e))
             sys.exit(1)
 
