@@ -7,6 +7,7 @@ awshelpers -- some handy aws and print routines
 """
 
 import os,sys,ConfigParser,subprocess
+import pprint
 
 #-----------------------------------------------------------------------
 def readconfig(fn):
@@ -122,3 +123,17 @@ def tprintx(headers,rows):
     P0(fmt%tuple(headers)+_el+'\n')
     for r in rows:
         P0(fmt%tuple(r)+_el+'\n')
+
+#-----------------------------------------------------------------------
+# PP - pretty print with no unicode
+#-----------------------------------------------------------------------
+
+def no_unicode(object, context, maxlevels, level):
+    """ change unicode u'foo' to string 'foo' when pretty printing"""
+    if pprint._type(object) is unicode:
+        object = str(object)
+    return pprint._safe_repr(object, context, maxlevels, level)
+
+PP0 = pprint.PrettyPrinter()
+PP0.format = no_unicode
+PP=PP0.pprint

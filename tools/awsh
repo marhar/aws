@@ -9,10 +9,10 @@ awsh -- aws shell
 import os,sys,readline,cmd,atexit,ConfigParser,traceback,subprocess
 import fnmatch,pprint,urllib2,stat,glob,types,collections,threading
 import boto.ec2,boto.sqs,boto,boto.iam,boto.glacier,boto.sns,boto.ses
-import boto.ec2.elb,boto.s3
+import boto.ec2.elb,boto.s3,boto.kinesis
 
 import awshelpers
-from awshelpers import P,P0,D,D0,T
+from awshelpers import P,P0,D,D0,T,PP
 
 #-----------------------------------------------------------------------
 def setEc2Conn(obj):
@@ -32,6 +32,13 @@ def setSqsConn(obj):
 def setS3Conn(obj):
     """connect to S3"""
     obj.s3conn = boto.s3.connect_to_region(obj.region,
+                              aws_access_key_id = obj.accesskey,
+                              aws_secret_access_key = obj.secretkey)
+
+#-----------------------------------------------------------------------
+def setKinesisConn(obj):
+    """connect to Kinesis"""
+    obj.kinesisconn = boto.kinesis.connect_to_region(obj.region,
                               aws_access_key_id = obj.accesskey,
                               aws_secret_access_key = obj.secretkey)
 
@@ -83,6 +90,7 @@ class AwshCmd(cmd.Cmd):
         tlist.append(threading.Thread(target = setEc2Conn,args = [self]))
         tlist.append(threading.Thread(target = setSqsConn,args = [self]))
         tlist.append(threading.Thread(target = setS3Conn,args = [self]))
+        tlist.append(threading.Thread(target = setKinesisConn,args = [self]))
         for t in tlist: t.start()
         for t in tlist: t.join()
 
@@ -570,6 +578,52 @@ class AwshCmd(cmd.Cmd):
             for i in self._elb.describe_instance_health(lb.name):
                 P('        %s : %s (%s)'%(i.instance_id,i.state,i.reason_code))
 
+    #-----------------------------------------------------------------------
+    def _kinesis_describe(self,n):
+        """describe a kinesis stream"""
+        P(n)
+        desc=self.kinesisconn.describe_stream(n)
+        P('       status : %s'%desc['StreamDescription']['StreamStatus'])
+        P('          arn : %s'%desc['StreamDescription']['StreamARN'])
+        P('    retention : %s'%desc['StreamDescription']['RetentionPeriodHours'])
+        P('       shards : %s'%len(desc['StreamDescription']['Shards']))
+        for ss in desc['StreamDescription']['Shards']:
+             P('        %s'%(ss['ShardId']))
+
+    #-----------------------------------------------------------------------
+    def do_kinesis(self,s):
+        """kinesis: print kinesis configuration"""
+        # going to use this as a testbed for subcommands
+        flag=True
+        while flag:
+            chunk=self.kinesisconn.list_streams()
+            flag=chunk['HasMoreStreams']
+            for n in chunk['StreamNames']:
+                self._kinesis_describe(n)
+
+    #-----------------------------------------------------------------------
+    def do_kinesisadd(self,s):
+        """kinesisadd: create kinesis stream"""
+        a=s.split()
+        if len(a) != 2:
+            P('    usage: kinesisadd channel-name nshards')
+        else:
+            try:
+                self.kinesisconn.create_stream(a[0], int(a[1]))
+            except boto.kinesis.exceptions.ResourceInUseException,e:
+                print e.message
+
+    #-----------------------------------------------------------------------
+    def do_kinesisdel(self,s):
+        """kinesisdel: delete kinesis stream"""
+        a=s.split()
+        if len(a) != 1:
+            P('    usage: kinesisdel channel-name')
+        else:
+            try:
+                self.kinesisconn.delete_stream(a[0])
+            except boto.kinesis.exceptions.ResourceInUseException,e:
+                print e.message
 
     #-----------------------------------------------------------------------
     def FUTURE_do_wait(self,s):
