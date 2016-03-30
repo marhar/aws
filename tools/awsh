@@ -6,7 +6,7 @@ awsh -- aws shell
     Mark Harrison, marhar@gmail.com     :
 """
 
-import os,sys,readline,cmd,atexit,ConfigParser,traceback,subprocess
+import os,sys,readline,cmd,atexit,ConfigParser,traceback,subprocess,time
 import fnmatch,pprint,urllib2,stat,glob,types,collections,threading
 import boto.ec2,boto.sqs,boto,boto.iam,boto.glacier,boto.sns,boto.ses
 import boto.ec2.elb,boto.s3,boto.kinesis
@@ -579,27 +579,86 @@ class AwshCmd(cmd.Cmd):
                 P('        %s : %s (%s)'%(i.instance_id,i.state,i.reason_code))
 
     #-----------------------------------------------------------------------
-    def _kinesis_describe(self,n):
+    def _kinesis_describe(self,n, desc, verbose):
         """describe a kinesis stream"""
-        P(n)
-        desc=self.kinesisconn.describe_stream(n)
-        P('       status : %s'%desc['StreamDescription']['StreamStatus'])
-        P('          arn : %s'%desc['StreamDescription']['StreamARN'])
-        P('    retention : %s'%desc['StreamDescription']['RetentionPeriodHours'])
-        P('       shards : %s'%len(desc['StreamDescription']['Shards']))
-        for ss in desc['StreamDescription']['Shards']:
-             P('        %s'%(ss['ShardId']))
+        if desc['StreamDescription']['StreamStatus'] != 'ACTIVE':
+            return
+        P('retention=%3s shards=%3s  %s'%(
+                       desc['StreamDescription']['RetentionPeriodHours'],
+                       len(desc['StreamDescription']['Shards']),
+                       n)
+        )
+        if verbose:
+            P('%s%s'%('',desc['StreamDescription']['StreamARN']))
+            for ss in desc['StreamDescription']['Shards']:
+                P('%26s%s'%('',ss['ShardId']))
+
+    #-----------------------------------------------------------------------
+    def do_kinput(self,s):
+        """kinput: put a record on a kinesis stream"""
+        print s
+        a=s.split()
+
+        if len(a) != 2:
+            P('    usage: kintail stream')
+            return
+
+        stream=a[0]
+        data=a[1]
+        shard_id = 'shardId-000000000000' #we only have one shard!
+        pos = 'LATEST'
+
+        kk=self.kinesisconn
+
+        kk.put_record(stream,data, "foo")
+
+    #-----------------------------------------------------------------------
+    def do_kintail(self,s):
+        """kintail: tail a kinesis stream"""
+        a=s.split()
+
+        if len(a) != 1:
+            P('    usage: kintail stream')
+            return
+
+        stream=a[0]
+        shard_id = 'shardId-000000000000' #we only have one shard!
+        pos = 'LATEST'
+
+        kk=self.kinesisconn
+        it = kk.get_shard_iterator(stream, shard_id, pos)["ShardIterator"]
+        while True:
+            try:
+                out = kk.get_records(it, limit=2)
+                #print 'out:',out
+                it = out['NextShardIterator']
+                for rr in out['Records']:
+                    P(rr)
+            except UnicodeDecodeError,e:
+                print '...1',e
+            except boto.kinesis.exceptions.ProvisionedThroughputExceededException,e:
+                print '...2',e
+            time.sleep(1)
 
     #-----------------------------------------------------------------------
     def do_kinesis(self,s):
         """kinesis: print kinesis configuration"""
         # going to use this as a testbed for subcommands
+        a=s.split()
+        if len(a) > 0 and a[0] == 'v':
+            verbose = True
+        else:
+            verbose = False
+
+        kdesc = {}
         flag=True
         while flag:
             chunk=self.kinesisconn.list_streams()
             flag=chunk['HasMoreStreams']
             for n in chunk['StreamNames']:
-                self._kinesis_describe(n)
+                kdesc[n] = self.kinesisconn.describe_stream(n)
+            for n in sorted(kdesc.keys()):
+                self._kinesis_describe(n, kdesc[n], verbose)
 
     #-----------------------------------------------------------------------
     def do_kinesisadd(self,s):
