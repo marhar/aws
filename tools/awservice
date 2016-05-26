@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+"""
+ggservice -- AWS RESTful service
+"""
+
+import flask, json, boto.kinesis, awshelpers
+from flask import request
+
+app = flask.Flask(__name__)
+
+@app.route('/kinesis/create', methods=['GET', 'POST'])
+def kinesis_create():
+    print request.form['streamname']
+    print request.form['nshards']
+    return '"Not Implemented"\n'
+
+    #try:
+    #    self.kinesisconn.create_stream(a[0], int(a[1]))
+    #except boto.kinesis.exceptions.ResourceInUseException,e:
+    #    print e.message
+
+
+
+@app.route('/kinesis/delete', methods=['GET', 'POST'])
+def kinesis_delete():
+    print request.form['streamname']
+    return '"Not Implemented"\n'
+
+    #try:
+    #    self.kinesisconn.delete_stream(a[0])
+    #except boto.kinesis.exceptions.ResourceInUseException,e:
+    #    print e.message
+
+@app.route('/kinesis/list', methods=['GET', 'POST'])
+def kinesis_list():
+    rv = []
+    flag=True
+    while flag:
+        chunk=kinesisconn.list_streams()
+        for n in chunk['StreamNames']:
+            rv.append(n)
+        flag=chunk['HasMoreStreams']
+
+    return json.dumps(sorted(rv), separators=(',',':')) + '\n'
+
+if __name__ == '__main__':
+
+    profile = 'default'
+    region = 'us-west-2'
+    credentials = awshelpers.readconfig('credentials')
+
+    kinesisconn = boto.kinesis.connect_to_region(region,
+        aws_access_key_id = credentials[profile]['aws_access_key_id'],
+        aws_secret_access_key = credentials[profile]['aws_secret_access_key'])
+
+    app.debug = True
+    app.run(port = 5002)
