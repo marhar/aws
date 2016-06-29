@@ -64,3 +64,52 @@ mhmath
         i-60a2e6a6 : InService (N/A)
         i-c0357606 : OutOfService (Instance)
 ```
+
+Building on Mac
+===============
+
+Because of some GPL restrictions, the system Mac Python doesn't have
+a good readline package.
+
+Here's how to build a Mac Python 2.7 base.
+
+``
+# make work area
+mkdir ~/py
+mkdir ~/py/dist
+mkdir ~/py/src
+
+# download these to ~/py/dist.  note versions may drift
+https://www.python.org/ftp/python/2.7.11/Python-2.7.11.tgz
+https://bootstrap.pypa.io/get-pip.py
+http://ftp.gnu.org/gnu/readline/readline-6.3.tar.gz
+
+# unpack
+cd ~/py/src
+tar xzf ../dist/Python-2.7.11.tgz
+tar xzf ../dist/readline-6.3.tar.gz
+
+# build and install readline
+cd ~/py/src/readline-6.3
+./configure --prefix=$HOME/py
+make -j8 install
+
+# build and install Python (it will detect installed readline)
+cd ~/py/src/Python-2.7.11
+./configure --prefix=$HOME/py
+make -j8 install
+
+# install pip
+~/py/bin/python ~/py/dist/get-pip.py
+
+# install boto package
+~/py/bin/pip install boto
+
+# test awsh
+~/py/bin/python awsh
+--------------------------------------------------
+| Welcome to awsh, the AWS shell                 |
+| docs: https://github.com/marhar/aws            |
+| type "help" for help                  build<6> |
+--------------------------------------------------
+``
