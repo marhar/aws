@@ -1,0 +1,32 @@
+#!/usr/local/sqlminus/bin/python
+"""
+kinesis-writer -- write to a kinesis stream
+
+    https://github.com/awsh             :  share and enjoy!
+    Mark Harrison, marhar@gmail.com     :
+"""
+
+import boto.kinesis
+
+import awshelpers
+from awshelpers import P,P0,D,D0,T,PP
+
+k = boto.kinesis.connect_to_region(obj.region,
+                                   aws_access_key_id = obj.accesskey,
+                                   aws_secret_access_key = obj.secretkey)
+
+
+try:
+    config = awshelpers.readconfig('config')
+    region = config[p2]['region']
+    output = config[p2]['output']
+
+    credentials = awshelpers.readconfig('credentials')
+    self.accesskey = credentials[self.profile]['aws_access_key_id']
+    self.secretkey = credentials[self.profile]['aws_secret_access_key']
+except KeyError, e:
+    P('    error with profile: '+profile)
+    P('    key access error reading configuration')
+    P('    fix in ~/.aws/config')
+    P('    %s'%(e))
+    sys.exit(1)
