@@ -73,7 +73,7 @@ a good readline package.
 
 Here's how to build a Mac Python 2.7 base.
 
-``
+```
 # make work area
 mkdir ~/py
 mkdir ~/py/dist
@@ -112,4 +112,4 @@ make -j8 install
 | docs: https://github.com/marhar/aws            |
 | type "help" for help                  build<6> |
 --------------------------------------------------
-``
+```
